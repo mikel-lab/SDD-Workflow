@@ -1,0 +1,17 @@
+# Python and test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Shell-test and validation scratch output
+test-output/
+tmp/
+*.tmp
+
+# Local evidence and installer backup copies
+evidence/
+backups/
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
