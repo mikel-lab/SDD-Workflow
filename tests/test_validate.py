@@ -6,6 +6,7 @@ real command against a disposable copy of the full distribution.
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -231,6 +232,145 @@ class ValidateDistributionTests(unittest.TestCase):
         result = self.validate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("canonical agent set", result.stderr)
+
+
+class CycleValidatorTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.root = Path(self.tempdir.name) / "fixture"
+        self.workspace = self.root / "mobile-app"
+        self.workspace.mkdir(parents=True)
+        self.artifact_directory = (
+            self.root / "specs/20260806-143500-mobile-app-team-123-feature"
+        )
+        self.artifact_directory.mkdir(parents=True)
+        self.manifest_path = self.artifact_directory / "sdd-cycle.json"
+        self.manifest = {
+            "schema_version": 1,
+            "cycle_id": "20260806-143500",
+            "workspace_root": str(self.workspace.resolve()),
+            "speckit_root": str(self.root.resolve()),
+            "primary_source": "TEAM-123",
+            "source_ids": ["TEAM-123"],
+            "artifact_directory": "specs/20260806-143500-mobile-app-team-123-feature",
+            "artifacts": ["spec.md", "tasks.md"],
+            "continuation_of": None,
+        }
+        self.write_manifest()
+        (self.artifact_directory / "spec.md").write_text("# Feature\n", encoding="utf-8")
+        (self.artifact_directory / "tasks.md").write_text("# Tasks\n\n- [ ] T001 First task\n", encoding="utf-8")
+        feature = self.root / ".specify/feature.json"
+        feature.parent.mkdir()
+        feature.write_text(
+            json.dumps({"feature_directory": self.manifest["artifact_directory"]}),
+            encoding="utf-8",
+        )
+
+    def tearDown(self) -> None:
+        self.tempdir.cleanup()
+
+    def write_manifest(self) -> None:
+        self.manifest_path.write_text(json.dumps(self.manifest), encoding="utf-8")
+
+    def validate(self, *extra_args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                PYTHON,
+                str(SOURCE_ROOT / "skills/sdd-workflow/scripts/validate_cycle.py"),
+                "--manifest",
+                str(self.manifest_path),
+                "--expected-workspace",
+                str(self.workspace),
+                "--expected-source",
+                "TEAM-123",
+                *extra_args,
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def test_valid_isolated_cycle_passes(self) -> None:
+        # Break caught: a valid, self-contained cycle is rejected.
+        result = self.validate("--require-tasks")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Cycle validation passed.", result.stdout)
+
+    def test_active_feature_mismatch_fails(self) -> None:
+        # Break caught: bootstrap selects a different feature package.
+        feature = self.root / ".specify/feature.json"
+        feature.write_text(json.dumps({"feature_directory": "specs/other"}), encoding="utf-8")
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("active feature", result.stderr)
+
+    def test_workspace_identity_mismatch_fails(self) -> None:
+        # Break caught: the manifest belongs to a different workspace.
+        self.manifest["workspace_root"] = str((self.root / "other-app").resolve())
+        self.write_manifest()
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("workspace", result.stderr)
+
+    def test_primary_source_mismatch_fails(self) -> None:
+        # Break caught: the requested source is not the cycle's primary source.
+        result = subprocess.run(
+            [
+                PYTHON,
+                str(SOURCE_ROOT / "skills/sdd-workflow/scripts/validate_cycle.py"),
+                "--manifest",
+                str(self.manifest_path),
+                "--expected-workspace",
+                str(self.workspace),
+                "--expected-source",
+                "TEAM-456",
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("primary source", result.stderr)
+
+    def test_unlisted_artifact_fails(self) -> None:
+        # Break caught: an ungoverned file is added to the cycle package.
+        (self.artifact_directory / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("artifacts", result.stderr)
+
+    def test_cross_spec_reference_fails(self) -> None:
+        # Break caught: a listed artifact imports planning context from another package.
+        (self.artifact_directory / "spec.md").write_text(
+            "See specs/other-feature/spec.md\n", encoding="utf-8"
+        )
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("cross-package", result.stderr)
+
+    def test_foreign_jira_key_fails(self) -> None:
+        # Break caught: a listed artifact cites an unauthorized Jira source.
+        (self.artifact_directory / "spec.md").write_text("Depends on TEAM-456\n", encoding="utf-8")
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unauthorized Jira", result.stderr)
+
+    def test_tasks_must_start_at_t001(self) -> None:
+        # Break caught: a cycle inherits task numbering from another package.
+        (self.artifact_directory / "tasks.md").write_text("- [ ] T002 Second task\n", encoding="utf-8")
+        result = self.validate("--require-tasks")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("T001", result.stderr)
+
+    def test_artifact_symlink_escape_fails(self) -> None:
+        # Break caught: a governed artifact resolves outside its package.
+        outside = self.root / "outside.md"
+        outside.write_text("# Outside\n", encoding="utf-8")
+        (self.artifact_directory / "spec.md").unlink()
+        (self.artifact_directory / "spec.md").symlink_to(outside)
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("symlink", result.stderr)
 
 
 if __name__ == "__main__":

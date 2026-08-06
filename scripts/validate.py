@@ -43,6 +43,7 @@ EXPECTED_FILES = (
     *(Path("agents") / name for name in CANONICAL_AGENTS),
     Path("scripts/install.sh"),
     Path("scripts/validate.py"),
+    Path("skills/sdd-workflow/scripts/validate_cycle.py"),
     Path("tests/test_validate.py"),
     Path("tests/test_install.sh"),
 )
@@ -54,7 +55,9 @@ def distribution_files() -> set[Path]:
     return {
         path.relative_to(ROOT)
         for path in ROOT.rglob("*")
-        if path.is_file() and ".git" not in path.relative_to(ROOT).parts
+        if path.is_file()
+        and ".git" not in path.relative_to(ROOT).parts
+        and ".superpowers" not in path.relative_to(ROOT).parts
     }
 
 
