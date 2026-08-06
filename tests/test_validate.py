@@ -339,6 +339,15 @@ class CycleValidatorTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("artifacts", result.stderr)
 
+    def test_nested_control_manifest_is_an_unlisted_artifact(self) -> None:
+        # Break caught: a nested sdd-cycle.json evades the governed inventory.
+        nested_manifest = self.artifact_directory / "contracts/sdd-cycle.json"
+        nested_manifest.parent.mkdir()
+        nested_manifest.write_text("{}", encoding="utf-8")
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("artifacts", result.stderr)
+
     def test_cross_spec_reference_fails(self) -> None:
         # Break caught: a listed artifact imports planning context from another package.
         (self.artifact_directory / "spec.md").write_text(
@@ -371,6 +380,42 @@ class CycleValidatorTests(unittest.TestCase):
         result = self.validate()
         self.assertEqual(result.returncode, 1)
         self.assertIn("symlink", result.stderr)
+
+    def test_active_feature_symlink_fails(self) -> None:
+        # Break caught: the active-feature control path follows a symlink.
+        feature = self.root / ".specify/feature.json"
+        target = self.root / "feature-target.json"
+        target.write_text(feature.read_text(encoding="utf-8"), encoding="utf-8")
+        feature.unlink()
+        feature.symlink_to(target)
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("ERROR: symlink", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_invalid_utf8_manifest_fails_with_actionable_error(self) -> None:
+        # Break caught: an invalid manifest encoding escapes the error contract.
+        self.manifest_path.write_bytes(b"\xff")
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("ERROR: cannot read JSON file", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_invalid_utf8_artifact_fails_with_actionable_error(self) -> None:
+        # Break caught: an invalid artifact encoding escapes the error contract.
+        (self.artifact_directory / "spec.md").write_bytes(b"\xff")
+        result = self.validate()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("ERROR: cannot read listed artifact spec.md", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_invalid_utf8_tasks_fails_with_actionable_error(self) -> None:
+        # Break caught: an invalid tasks encoding escapes the error contract.
+        (self.artifact_directory / "tasks.md").write_bytes(b"\xff")
+        result = self.validate("--require-tasks")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("ERROR: cannot read listed artifact tasks.md", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
 
 
 if __name__ == "__main__":

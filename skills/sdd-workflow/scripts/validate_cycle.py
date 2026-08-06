@@ -30,7 +30,7 @@ def load_json(path: Path) -> dict[str, object]:
     """Load a JSON object, rejecting missing and non-object documents."""
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError(f"cannot read JSON file {path}: {error}") from error
     if not isinstance(value, dict):
         raise ValueError(f"JSON file must contain an object: {path}")
@@ -69,8 +69,9 @@ def actual_artifacts(artifact_dir: Path) -> set[str]:
     for path in artifact_dir.rglob("*"):
         if path.is_symlink():
             raise ValueError(f"symlink is not allowed: {path}")
-        if path.is_file() and path.name != "sdd-cycle.json":
-            artifacts.add(path.relative_to(artifact_dir).as_posix())
+        relative_path = path.relative_to(artifact_dir).as_posix()
+        if path.is_file() and relative_path != "sdd-cycle.json":
+            artifacts.add(relative_path)
     return artifacts
 
 
@@ -153,22 +154,25 @@ def validate_cycle(
         )
 
     feature_path = speckit_root / ".specify/feature.json"
-    try:
-        feature = load_json(feature_path)
-        active_directory = feature.get("feature_directory")
-        if not isinstance(active_directory, str):
-            errors.append("active feature file must contain feature_directory")
-        elif resolve_inside(speckit_root, active_directory).resolve() != artifact_dir.resolve():
-            errors.append("active feature does not match the declared artifact directory")
-    except ValueError as error:
-        errors.append(str(error))
+    if feature_path.is_symlink():
+        errors.append(f"symlink is not allowed: {feature_path}")
+    else:
+        try:
+            feature = load_json(feature_path)
+            active_directory = feature.get("feature_directory")
+            if not isinstance(active_directory, str):
+                errors.append("active feature file must contain feature_directory")
+            elif resolve_inside(speckit_root, active_directory).resolve() != artifact_dir.resolve():
+                errors.append("active feature does not match the declared artifact directory")
+        except ValueError as error:
+            errors.append(str(error))
 
     for relative, path in listed_paths.items():
         if not path.is_file():
             continue
         try:
             text = path.read_text(encoding="utf-8")
-        except OSError as error:
+        except (OSError, UnicodeDecodeError) as error:
             errors.append(f"cannot read listed artifact {relative}: {error}")
             continue
         for referenced in referenced_spec_paths(text):
@@ -188,7 +192,11 @@ def validate_cycle(
         if tasks_path is None or not tasks_path.is_file():
             errors.append("tasks.md is required when --require-tasks is set")
         else:
-            first_task = TASK_ID.search(tasks_path.read_text(encoding="utf-8"))
+            try:
+                first_task = TASK_ID.search(tasks_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError) as error:
+                errors.append(f"cannot read tasks.md: {error}")
+                return errors
             if first_task is None or first_task.group() != "T001":
                 errors.append("the first task ID must be T001")
     return errors
