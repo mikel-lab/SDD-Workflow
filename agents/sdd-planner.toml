@@ -13,13 +13,16 @@ Mandatory dependency:
 
 Stable planning boundaries:
 - Start from the user's natural-language request and inspect the repository deeply enough to ground every artifact.
+- Accept a cycle only when the root chat supplies `cycle_id`, `workspace_root`, `speckit_root`, primary source, `source_ids`, and an exact assigned `artifact_directory`. For a new cycle, create `sdd-cycle.json` as the first control artifact; for a continuation, open only the exact manifest path after its workspace and primary-source identities match.
+- Do not select an active or historical feature package. Invoke official `speckit-specify` with `SPECIFY_FEATURE_DIRECTORY` set to the assigned `artifact_directory`, maintain the manifest `artifacts` inventory, and use `validate_cycle.py` before reading generated artifacts and at planning completion.
+- Read governed artifacts only inside the assigned `artifact_directory`. Any external artifact read invalidates the result; stop and report the exact path.
 - Treat application code, tests, configuration, and resources as read-only inputs.
-- Write only inside the SDD artifact directory selected by the skill, except that official `speckit-specify` may create or update the exact `.specify/feature.json` bootstrap file. No other `.specify/` write is permitted.
+- Write only inside the assigned SDD artifact directory, except that official `speckit-specify` may create or update the exact `.specify/feature.json` bootstrap file. No other `.specify/` write is permitted.
 - Produce every artifact required by the skill and no extra project documentation.
 - When the skill requires routing evidence, identify parallel-safe candidates with a bounded objective, resolved dependencies, exclusive file ownership, low complexity, and independently verifiable acceptance criteria. Do not select the executor; the Orchestrator owns routing.
 - If a material ambiguity can change scope, behavior, architecture, or acceptance, return targeted clarification questions to the Orchestrator rather than inventing a consequential assumption.
 - Do not finalize contradictory artifacts or unresolved material decisions.
-- At completion, return the exact list of changed paths so the Orchestrator can enforce the write boundary, including `.specify/feature.json` whenever `speckit-specify` changed it.
+- At completion, return `cycle_id`, `source_ids`, `artifact_directory`, exact `artifact_reads`, exact `changed_paths`, and the exact `cycle_validation_command` and `cycle_validation_result`, including `.specify/feature.json` whenever `speckit-specify` changed it.
 - For approved-scope work absent from `tasks.md`, apply the `speckit-tasks` contract to produce bounded task coverage. Invoke `speckit-converge` only when evidence proves `speckit-implement` executed the current task list, or a future converge contract explicitly supports the executor used; every task change requires fresh planning review and exact approval.
 
 Workspace safety:

@@ -108,6 +108,66 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertIn("always runs `speckit-analyze`", reviewer)
         self.assertIn("fresh planning review and exact approval", planner)
 
+    def test_root_chat_is_declared_as_sole_orchestrator(self) -> None:
+        # Break caught: a configured agent competes with the invoking chat for
+        # coordination and user contact.
+        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("## Root Chat Authority", skill)
+        self.assertIn("sole coordination and user-contact authority", skill)
+
+    def test_root_chat_must_not_dispatch_sdd_orchestrator(self) -> None:
+        # Break caught: the root chat delegates its governing role to an
+        # additional orchestrator agent.
+        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("must not dispatch `sdd-orchestrator`", skill)
+
+    def test_new_cycle_ignores_active_feature_as_selection_input(self) -> None:
+        # Break caught: a historical active package becomes input for a new
+        # request before that request has its own identity and manifest.
+        sources = (
+            self.root / "skills/sdd-workflow/references/sources-and-artifacts.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("must not use an active feature as a selection input", sources)
+
+    def test_explicit_feature_directory_is_mandatory(self) -> None:
+        # Break caught: speckit-specify chooses a package implicitly instead
+        # of the cycle's explicitly assigned directory.
+        planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("SPECIFY_FEATURE_DIRECTORY", planner)
+        self.assertIn("assigned artifact_directory", planner)
+
+    def test_historical_spec_discovery_is_forbidden(self) -> None:
+        # Break caught: broad filesystem discovery reopens an unrelated
+        # historical feature package.
+        sources = (
+            self.root / "skills/sdd-workflow/references/sources-and-artifacts.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("Do not use `find`, `rg`, globbing, or equivalent", sources)
+
+    def test_planner_and_reviewer_report_artifact_reads(self) -> None:
+        # Break caught: a role reads an artifact outside the selected package
+        # without an auditable record.
+        contracts = (self.root / "skills/sdd-workflow/references/contracts.md").read_text(
+            encoding="utf-8"
+        )
+        planner_agent = (self.root / "agents/sdd-planner.toml").read_text(encoding="utf-8")
+        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(encoding="utf-8")
+
+        self.assertEqual(contracts.count("artifact_reads:"), 2)
+        self.assertIn("artifact_reads", planner_agent)
+        self.assertIn("artifact_reads", reviewer_agent)
+
+    def test_continuation_requires_explicit_request_and_identity_match(self) -> None:
+        # Break caught: a related request silently reuses an existing package
+        # without a user-directed continuation or matching identity.
+        sources = (
+            self.root / "skills/sdd-workflow/references/sources-and-artifacts.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("only on explicit user continuation intent", sources)
+        self.assertIn("workspace and primary-source identities must match", sources)
+
     def test_readme_documents_runtime_dependencies(self) -> None:
         # Break caught: operators install the workflow without required SpecKit,
         # Superpowers, or connector capabilities being declared.

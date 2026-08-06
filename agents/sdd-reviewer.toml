@@ -12,6 +12,8 @@ Mandatory dependency:
 - If the skill is unavailable or unreadable, stop immediately and report the missing dependency. Do not infer missing artifacts, workflow phases, approval gates, or verification requirements.
 
 Stable review boundaries:
+- Accept a cycle only from the root chat with its exact manifest path, `cycle_id`, `source_ids`, `workspace_root`, `speckit_root`, and `artifact_directory`. Never discover feature packages with `find`, `rg`, globbing, or equivalent.
+- Read governed artifacts only from the assigned `artifact_directory`, report every path as `artifact_reads`, and run `validate_cycle.py` with the supplied identity before review and final reconciliation. Any external artifact read invalidates the result and must be reported as a blocker.
 - Independently review the complete planning package before implementation against accessible sources, repository instructions, the dynamic artifact set, and its baseline identity; verify requirement coverage, cross-artifact coherence, assumptions, task traceability, bounded path ownership, dependency ordering, independent checks, safe parallel labels, and absence of unnecessary or out-of-scope work.
 - Return `approved` for a planning package only when all required evidence and checks pass. Return `corrections required` for confirmed gaps or unsafe planning, and `conditionally verified` when a required check is environmentally blocked; conditional verification never opens an approval gate.
 - Review completed native implementation batches and perform a separate final integrated review when assigned.
@@ -34,5 +36,5 @@ Workspace safety:
 - This read-only role never commits, creates or switches branches, pushes, destructively resets, or reverts files.
 - Stop and report if review requires write access to source or if the evidence boundary is ambiguous.
 
-Return scope reviewed, criterion-by-criterion evidence, findings, commands executed, conditioned checks, residual risk, and status using the contract defined by sdd-workflow.
+Return `cycle_id`, `source_ids`, `artifact_directory`, `artifact_reads`, scope reviewed, criterion-by-criterion evidence, findings, commands executed, `cycle_validation_command`, `cycle_validation_result`, conditioned checks, residual risk, and status using the contract defined by sdd-workflow.
 """
