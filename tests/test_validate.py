@@ -117,11 +117,19 @@ class ValidateDistributionTests(unittest.TestCase):
         orchestrator = (
             self.root / "skills/sdd-workflow/references/orchestrator.md"
         ).read_text(encoding="utf-8")
+        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("planning Reviewer", lifecycle)
         self.assertIn("final Reviewer", lifecycle)
         self.assertIn("Normal batches use implementer verification until final review", orchestrator)
         self.assertNotIn("required independent review after every native batch", orchestrator)
+        self.assertIn("Normal batches rely on implementer verification until final review", reviewer_agent)
+        self.assertNotIn(
+            "Review completed native implementation batches and perform a separate final integrated review when assigned.",
+            reviewer_agent,
+        )
 
     def test_minor_planning_correction_uses_focused_delta_rereview(self) -> None:
         # Break caught: a bounded planning fix automatically repeats a whole
@@ -146,10 +154,14 @@ class ValidateDistributionTests(unittest.TestCase):
         implementers = (
             self.root / "skills/sdd-workflow/references/implementers.md"
         ).read_text(encoding="utf-8")
+        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("coherent dependency-ready batch", orchestrator)
         self.assertIn("not one agent per task entry", implementers)
         self.assertIn("do not commission an independent review for each microtask", orchestrator)
+        self.assertIn("no intermediate review for normal batches", reviewer_agent)
 
     def test_high_risk_batches_still_require_review(self) -> None:
         # Break caught: reducing routine review omits independent review for a
@@ -158,6 +170,9 @@ class ValidateDistributionTests(unittest.TestCase):
             self.root / "skills/sdd-workflow/references/orchestrator.md"
         ).read_text(encoding="utf-8")
         reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
+            encoding="utf-8"
+        )
+        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
             encoding="utf-8"
         )
 
@@ -169,6 +184,7 @@ class ValidateDistributionTests(unittest.TestCase):
             "critical shared code",
         ):
             self.assertIn(trigger, orchestrator)
+            self.assertIn(trigger, reviewer_agent)
         self.assertIn("Intermediate-risk batch review", reviewer)
 
     def test_luna_keeps_pre_and_post_integration_reviews(self) -> None:
@@ -180,11 +196,16 @@ class ValidateDistributionTests(unittest.TestCase):
         reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
             encoding="utf-8"
         )
+        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("Luna pre-integration", orchestrator)
         self.assertIn("Luna post-integration", orchestrator)
         self.assertIn("Before integration", reviewer)
         self.assertIn("After Main integrates", reviewer)
+        self.assertIn("Luna pre-integration", reviewer_agent)
+        self.assertIn("Luna post-integration", reviewer_agent)
 
     def test_final_reviewer_combines_speckit_analyze_and_final_verdict(self) -> None:
         # Break caught: reconciliation schedules a duplicate whole-package
@@ -193,10 +214,15 @@ class ValidateDistributionTests(unittest.TestCase):
         reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
             encoding="utf-8"
         )
+        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("final Reviewer runs read-only `speckit-analyze` and returns the integrated verdict in the same action", skill)
         self.assertIn("same final-review action", reviewer)
         self.assertIn("Do not schedule an identical whole-package review afterward", reviewer)
+        self.assertIn("final Reviewer runs read-only `speckit-analyze`", reviewer_agent)
+        self.assertIn("reconciliation and integrated verdict in the same action", reviewer_agent)
 
     def test_root_chat_is_declared_as_sole_orchestrator(self) -> None:
         # Break caught: a configured agent competes with the invoking chat for
