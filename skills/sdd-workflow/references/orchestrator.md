@@ -16,6 +16,22 @@ Report every handoff with the Orchestrator Status recipe in [Contracts](contract
 6. At the beginning of each cycle, ask once whether visible Luna tasks are authorized for that cycle. Record `authorized`, `denied`, or `not answered`. Authorization expires when the cycle completes, is cancelled, or restarts; prior authorization never carries forward.
 7. Move to `planning` only when the request can be grounded in accessible evidence. Otherwise report `blocked` with the minimum content or decision needed.
 
+## New Cycle Status Recipe
+
+For a request that is not an explicit, identity-matching continuation, state the new-cycle isolation controls in the Orchestrator Status before any governed artifact read:
+
+```text
+state: intake
+transition: planning after source access and cycle identity validation
+cycle_id: <new generated identity>
+artifact_directory: <exact assigned absent directory>
+active feature selection: ignored
+historical artifact reads: none
+next action: assign the exact directory to the Planner and validate its manifest output
+```
+
+The active feature file may be checked only as the official bootstrap output after assignment; it is never an input for selecting the new directory.
+
 ## Planner Delegation and Boundary Validation
 
 Send one complete Planner briefing containing the request, accessible source locations and limitations, explicit user decisions, repository root and instructions, workspace condition, current state, cycle identity, `workspace_root`, `speckit_root`, exact assigned `artifact_directory`, primary source, `source_ids`, cycle counters, and the required Planner Result contract. Delegate all deep analysis and artifact creation to the Planner.

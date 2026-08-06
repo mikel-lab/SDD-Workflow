@@ -136,6 +136,18 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertIn("transition: final_review", orchestrator)
         self.assertIn("independent reviews: none", orchestrator)
 
+    def test_new_cycle_status_recipe_names_isolation_fields(self) -> None:
+        # Break caught: a new cycle is described without an assigned absent
+        # directory or with historical artifact reads disguised as evidence.
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("## New Cycle Status Recipe", orchestrator)
+        self.assertIn("artifact_directory: <exact assigned absent directory>", orchestrator)
+        self.assertIn("active feature selection: ignored", orchestrator)
+        self.assertIn("historical artifact reads: none", orchestrator)
+
     def test_minor_planning_correction_uses_focused_delta_rereview(self) -> None:
         # Break caught: a bounded planning fix automatically repeats a whole
         # package review rather than the same Reviewer's focused delta review.
