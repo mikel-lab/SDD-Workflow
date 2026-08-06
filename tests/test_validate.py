@@ -125,6 +125,17 @@ class ValidateDistributionTests(unittest.TestCase):
             reviewer_agent,
         )
 
+    def test_normal_batch_status_recipe_names_only_final_review(self) -> None:
+        # Break caught: an otherwise normal batch invents implementation_review
+        # transitions or per-delivery independent reviews.
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("## Normal Batch Status Recipe", orchestrator)
+        self.assertIn("transition: final_review", orchestrator)
+        self.assertIn("independent reviews: none", orchestrator)
+
     def test_minor_planning_correction_uses_focused_delta_rereview(self) -> None:
         # Break caught: a bounded planning fix automatically repeats a whole
         # package review rather than the same Reviewer's focused delta review.

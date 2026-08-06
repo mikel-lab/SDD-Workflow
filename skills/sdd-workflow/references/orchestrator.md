@@ -58,6 +58,20 @@ Apply the routing rules in the required implementer and Luna references. Treat d
 
 Normal batches use implementer verification until final review; do not commission an independent review for each microtask. Commission an intermediate independent review only for a high-risk batch, security, persistence/migration, API contract, critical shared code, Luna pre-integration, or Luna post-integration. The Orchestrator coordinates these reviews but never substitutes its own inspection for a Reviewer verdict.
 
+## Normal Batch Status Recipe
+
+For a normal, low-risk batch with no listed intermediate-review trigger, use this shape in the Orchestrator Status so routing does not imply a per-delivery review:
+
+```text
+state: implementation
+transition: final_review after every delivery returns its Implementer Result and focused checks pass
+routing: coherent dependency-ready batch; implementer verification for each delivery
+independent reviews: none before final_review
+next action: collect delivery evidence, then commission one final Reviewer action for the integrated result
+```
+
+Record a trigger and use `implementation_review` only when one of the risk categories above actually applies.
+
 ## Convergence and Completion
 
 After approved tasks are delivered, enter `final_review` and request one final Reviewer action that runs read-only `speckit-analyze`, reconciles the result, and returns the integrated verdict. Run and record the cycle validator at final reconciliation. Route unfinished work already represented in `tasks.md` as an implementation correction. Route approved-scope work absent from `tasks.md` to the Planner for a bounded `speckit-tasks` contract repair. Permit `speckit-converge` only when evidence proves `speckit-implement` executed the current `tasks.md`, or when a future converge contract explicitly supports the executor actually used.
