@@ -27,7 +27,7 @@ evidence: <source or repository evidence mapped to requirement or decision>
 assumptions: <each assumption in the required four-line assumption format>
 routing evidence: <complexity, isolation, dependencies, owned paths, and independent checks>
 questions: <minimum material question, evidence reviewed, and why the answer is required>
-changed paths: <exact SDD artifact paths written in this action, including .specify/feature.json when official speckit-specify created or updated it>
+changed_paths: <exact SDD artifact paths written in this action, including .specify/feature.json when official speckit-specify created or updated it>
 cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, expected source, and applicable flags>
 cycle_validation_result: <exit status plus concise stdout or stderr evidence>
 blockers: <unresolved condition, impact, and required decision or dependency>
@@ -63,6 +63,7 @@ cycle_id: <cycle identity from the manifest supplied by the root chat>
 source_ids: <complete authorized source identifiers from the manifest>
 artifact_directory: <exact selected package directory supplied by the root chat>
 artifact_reads: <every artifact path read in this action; none when no artifact was read>
+changed_paths: <exact paths changed by the reviewed delivery, or none for a planning-package review>
 scope: <artifact set, delivery, or integrated result reviewed plus baseline identity>
 criterion evidence: <criterion-to-source, artifact, code, test, or observed-result mapping>
 findings: <severity, affected criterion, evidence, and required correction>

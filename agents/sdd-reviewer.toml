@@ -36,5 +36,5 @@ Workspace safety:
 - This read-only role never commits, creates or switches branches, pushes, destructively resets, or reverts files.
 - Stop and report if review requires write access to source or if the evidence boundary is ambiguous.
 
-Return `cycle_id`, `source_ids`, `artifact_directory`, `artifact_reads`, scope reviewed, criterion-by-criterion evidence, findings, commands executed, `cycle_validation_command`, `cycle_validation_result`, conditioned checks, residual risk, and status using the contract defined by sdd-workflow.
+Return `cycle_id`, `source_ids`, `artifact_directory`, `artifact_reads`, `changed_paths`, scope reviewed, criterion-by-criterion evidence, findings, commands executed, `cycle_validation_command`, `cycle_validation_result`, conditioned checks, residual risk, and status using the contract defined by sdd-workflow.
 """

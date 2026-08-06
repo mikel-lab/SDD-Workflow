@@ -147,17 +147,33 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertIn("Do not use `find`, `rg`, globbing, or equivalent", sources)
 
     def test_planner_and_reviewer_report_artifact_reads(self) -> None:
-        # Break caught: a role reads an artifact outside the selected package
-        # without an auditable record.
+        # Break caught: either role omits a required cycle-isolation result
+        # field, including an auditable record of artifact reads and writes.
         contracts = (self.root / "skills/sdd-workflow/references/contracts.md").read_text(
             encoding="utf-8"
         )
         planner_agent = (self.root / "agents/sdd-planner.toml").read_text(encoding="utf-8")
         reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(encoding="utf-8")
 
-        self.assertEqual(contracts.count("artifact_reads:"), 2)
-        self.assertIn("artifact_reads", planner_agent)
-        self.assertIn("artifact_reads", reviewer_agent)
+        planner_result = contracts.split("## Planner Result", 1)[1].split(
+            "## Implementation Brief", 1
+        )[0]
+        reviewer_result = contracts.split("## Reviewer Result", 1)[1]
+        required_fields = (
+            "cycle_id",
+            "source_ids",
+            "artifact_directory",
+            "artifact_reads",
+            "changed_paths",
+            "cycle_validation_command",
+            "cycle_validation_result",
+        )
+
+        for field in required_fields:
+            self.assertIn(f"{field}:", planner_result)
+            self.assertIn(f"{field}:", reviewer_result)
+            self.assertIn(field, planner_agent)
+            self.assertIn(field, reviewer_agent)
 
     def test_continuation_requires_explicit_request_and_identity_match(self) -> None:
         # Break caught: a related request silently reuses an existing package
