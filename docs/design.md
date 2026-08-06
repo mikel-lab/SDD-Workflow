@@ -71,6 +71,7 @@ speckit_root
 primary_source
 source_ids
 artifact_directory
+artifacts
 continuation_of
 ```
 
@@ -97,11 +98,15 @@ El directorio contiene `sdd-cycle.json`:
   "primary_source": "TEAM-123",
   "source_ids": ["TEAM-123"],
   "artifact_directory": "specs/20260806-143500-mobile-app-team-123-feature-name",
+  "artifacts": ["spec.md", "checklists/requirements.md"],
   "continuation_of": null
 }
 ```
 
 El manifiesto es un artefacto gobernado de `sdd-workflow`, aunque no sea generado por SpecKit.
+`artifacts` contiene rutas relativas al propio `artifact_directory` y se actualiza
+después de cada acción oficial de SpecKit. El validador exige que coincida con
+los archivos gobernados que existen realmente en esa carpeta.
 
 ### Ciclo nuevo
 
