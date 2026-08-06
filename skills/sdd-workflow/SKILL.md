@@ -30,11 +30,11 @@ Before reading a governed artifact, the root chat establishes a cycle identity a
 1. Validate intake and source access, then establish the isolated cycle identity and artifact directory before any governed artifact read.
 2. Delegate Planner creation of the cycle manifest and `speckit-specify` with its exact assigned directory; validate the manifest and active-feature output before artifact reads.
 3. Plan with `speckit-clarify` when materially blocked, `speckit-checklist`, `speckit-plan`, and `speckit-tasks`, then run the cycle validator at planning completion.
-4. Run `speckit-analyze` read-only; apply any artifact correction as a separate Planner action, revalidate the cycle, and obtain an independent planning review.
+4. Run `speckit-analyze` read-only; apply any artifact correction as a separate Planner action, revalidate the cycle, and obtain the planning review. A bounded correction receives the same Reviewer's focused delta re-review; material changes to scope, architecture, acceptance criteria, source set, or artifact identity require a fresh full planning review.
 5. Revalidate before freezing the approved artifact set and wait for the exact implementation approval.
-6. Revalidate before routing dependency-ready implementation batches and review each delivery.
-7. Reconcile every implementation with read-only `speckit-analyze` and a final cycle validation. When approved-scope work is absent from `tasks.md`, the Planner repairs task coverage under the `speckit-tasks` contract. Use `speckit-converge` only when evidence proves `speckit-implement` executed the current task list, or a future converge contract explicitly supports the executor used. Any task change returns through planning review and a new approval gate.
-8. Complete only after final independent review.
+6. Revalidate before routing coherent dependency-ready implementation batches. Normal batches use implementer verification until final review; request an intermediate review only for the defined risk triggers or Luna pre- and post-integration gates.
+7. The final Reviewer runs read-only `speckit-analyze` and returns the integrated verdict in the same action. When approved-scope work is absent from `tasks.md`, the Planner repairs task coverage under the `speckit-tasks` contract. Use `speckit-converge` only when evidence proves `speckit-implement` executed the current task list, or a future converge contract explicitly supports the executor used. Any task change returns through planning review and a new approval gate.
+8. Complete only after that final independent verdict is `approved`.
 
 ## Quick Reference
 

@@ -108,6 +108,96 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertIn("always runs `speckit-analyze`", reviewer)
         self.assertIn("fresh planning review and exact approval", planner)
 
+    def test_normal_path_has_one_planning_and_one_final_review(self) -> None:
+        # Break caught: the routine path schedules extra implementation or
+        # convergence reviews instead of one planning and one final review.
+        lifecycle = (
+            self.root / "skills/sdd-workflow/references/lifecycle-and-gates.md"
+        ).read_text(encoding="utf-8")
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("planning Reviewer", lifecycle)
+        self.assertIn("final Reviewer", lifecycle)
+        self.assertIn("Normal batches use implementer verification until final review", orchestrator)
+        self.assertNotIn("required independent review after every native batch", orchestrator)
+
+    def test_minor_planning_correction_uses_focused_delta_rereview(self) -> None:
+        # Break caught: a bounded planning fix automatically repeats a whole
+        # package review rather than the same Reviewer's focused delta review.
+        lifecycle = (
+            self.root / "skills/sdd-workflow/references/lifecycle-and-gates.md"
+        ).read_text(encoding="utf-8")
+        planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
+            encoding="utf-8"
+        )
+
+        for content in (lifecycle, planner):
+            self.assertIn("focused delta re-review", content)
+        self.assertIn("material changes to scope, architecture, acceptance criteria, source set, or artifact identity", lifecycle)
+
+    def test_normal_microtasks_do_not_each_require_independent_review(self) -> None:
+        # Break caught: a normal coherent batch is split into reviewer work for
+        # every small task although no risk trigger applies.
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+        implementers = (
+            self.root / "skills/sdd-workflow/references/implementers.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("coherent dependency-ready batch", orchestrator)
+        self.assertIn("not one agent per task entry", implementers)
+        self.assertIn("do not commission an independent review for each microtask", orchestrator)
+
+    def test_high_risk_batches_still_require_review(self) -> None:
+        # Break caught: reducing routine review omits independent review for a
+        # high-risk, security, migration, API, or critical shared-code batch.
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
+            encoding="utf-8"
+        )
+
+        for trigger in (
+            "high-risk batch",
+            "security",
+            "persistence/migration",
+            "API contract",
+            "critical shared code",
+        ):
+            self.assertIn(trigger, orchestrator)
+        self.assertIn("Intermediate-risk batch review", reviewer)
+
+    def test_luna_keeps_pre_and_post_integration_reviews(self) -> None:
+        # Break caught: Luna's isolation and integration safeguards are folded
+        # into the normal review budget.
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("Luna pre-integration", orchestrator)
+        self.assertIn("Luna post-integration", orchestrator)
+        self.assertIn("Before integration", reviewer)
+        self.assertIn("After Main integrates", reviewer)
+
+    def test_final_reviewer_combines_speckit_analyze_and_final_verdict(self) -> None:
+        # Break caught: reconciliation schedules a duplicate whole-package
+        # review rather than returning one integrated final verdict.
+        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
+        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("final Reviewer runs read-only `speckit-analyze` and returns the integrated verdict in the same action", skill)
+        self.assertIn("same final-review action", reviewer)
+        self.assertIn("Do not schedule an identical whole-package review afterward", reviewer)
+
     def test_root_chat_is_declared_as_sole_orchestrator(self) -> None:
         # Break caught: a configured agent competes with the invoking chat for
         # coordination and user contact.

@@ -21,9 +21,9 @@ Review the complete dynamic artifact set and its exact baseline identity against
 
 Return `approved` only when all required evidence and checks are complete and no correction remains. Return `corrections required` for confirmed gaps, contradictions, unsafe routing metadata, or scope violations. Return `conditionally verified` when access or environment prevents a required check; it never opens the planning gate.
 
-## Native Batch Review
+## Intermediate-risk batch review
 
-For each Main, High, or Simple delivery, review the approved Implementation Brief, artifact baseline, exact changed paths, diff or equivalent content evidence, and check results. Confirm scope and path ownership, criterion behavior, tests and failure handling, repository conventions, dependency effects, and absence of unrelated changes. Reproduce permitted read-only checks or record environmental limits. Route each confirmed issue to the affected criterion and required correction.
+Review a native delivery only when the Orchestrator identifies a high-risk batch, security, persistence/migration, API contract, or critical shared code trigger. Review the approved Implementation Brief, artifact baseline, exact changed paths, diff or equivalent content evidence, and check results. Confirm scope and path ownership, criterion behavior, tests and failure handling, repository conventions, dependency effects, and absence of unrelated changes. Reproduce permitted read-only checks or record environmental limits. Route each confirmed issue to the affected criterion and required correction. Normal batches rely on implementer verification until final review.
 
 ## Luna Reviews
 
@@ -31,9 +31,9 @@ Before integration, review the isolated Luna delivery against its authorized bri
 
 After Main integrates an approved Luna delivery, review the integrated repository state again. Verify that the approved commit's intended delta was preserved, integration introduced no extra changes or conflicts, checks still support the criteria, and current paths remain within scope. Never reuse the pre-integration verdict as the post-integration verdict.
 
-## Post-Implementation Analysis and Convergence
+## Final Reconciliation and Integrated Review
 
-After all currently approved tasks are delivered, the Reviewer always runs `speckit-analyze` strictly read-only and independently reconciles the sources, approved artifacts, `tasks.md`, code, tests, and observed results.
+After all currently approved tasks are delivered, the final Reviewer always runs `speckit-analyze` strictly read-only and independently reconciles the sources, approved artifacts, `tasks.md`, code, tests, and observed results in the same final-review action.
 
 Classify every confirmed missing approved-scope obligation by task coverage:
 
@@ -41,10 +41,10 @@ Classify every confirmed missing approved-scope obligation by task coverage:
 - If the required work is absent from `tasks.md`, report the source criterion, evidence, affected paths, and why existing tasks do not cover it; route the gap to the Planner for a bounded `speckit-tasks` contract repair. Record whether evidence proves that `speckit-implement` executed the current `tasks.md`, because only that proof—or a future `speckit-converge` contract that explicitly supports the actual executor—makes `speckit-converge` compatible.
 - If the candidate is an optional improvement or exceeds the approved source scope, report it only as out-of-scope information; do not route it to convergence.
 
-Do not run `speckit-tasks` or `speckit-converge` and do not append tasks. When the Planner changes `tasks.md`, treat the prior gate as invalid: require a fresh planning review of the changed package and a new exact `Approved, implement.` before the new work proceeds.
+Do not run `speckit-tasks` or `speckit-converge` and do not append tasks. When the Planner changes `tasks.md`, treat the prior gate as invalid: require a fresh planning review of the changed package and a new exact `Approved, implement.` before the new work proceeds. Do not schedule an identical whole-package review afterward.
 
 ## Final Integrated Review
 
-Review the complete integrated result only after batch corrections, Luna post-integration reviews, and post-implementation convergence are resolved. Recheck every approved criterion against sources, current artifacts, code, tests, exact changed paths, and reproducible verification results. Confirm that the artifact approval and implementation authorization are still valid and that no required work remains.
+In the same final-review action, review the complete integrated result after batch corrections and Luna post-integration reviews are resolved. Recheck every approved criterion against sources, current artifacts, code, tests, exact changed paths, and reproducible verification results. Confirm that the artifact approval and implementation authorization are still valid and that no required work remains.
 
 Return `approved` only for a fully evidenced integrated result with no correction finding or conditioned check. Use `corrections required` for confirmed defects or omissions and `conditionally verified` for incomplete environmental verification. Neither a partial batch approval nor a conditioned result authorizes `complete`.

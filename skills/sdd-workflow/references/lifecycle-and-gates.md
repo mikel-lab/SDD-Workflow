@@ -14,7 +14,6 @@ awaiting_implementation_approval
 implementation
 implementation_review
 implementation_correction
-post_implementation_convergence
 final_review
 complete | blocked | cancelled
 ```
@@ -24,14 +23,14 @@ complete | blocked | cancelled
 1. `intake` validates the request, mandatory dependencies, source accessibility, repository instructions, and initial authority. Advance to `planning` when the cycle can be grounded in evidence; otherwise finish as `blocked` or `cancelled`.
 2. `planning` produces the complete dynamic SDD artifact set. Enter `planning_blocked` for a material ambiguity, or `planning_review` when the set is ready for independent review.
 3. `planning_blocked` records the evidence and minimum question required. Resume `planning` after a resolving decision; remain blocked while the decision is unavailable.
-4. `planning_review` ends with one Reviewer status. `approved` advances to `awaiting_implementation_approval`; `corrections required` advances to `planning_correction`; `conditionally verified` remains outside every approval gate.
-5. `planning_correction` is a Planner write action followed by a new `planning_review`.
+4. `planning_review` is one full planning Reviewer action. `approved` advances to `awaiting_implementation_approval`; `corrections required` advances to `planning_correction`; `conditionally verified` remains outside every approval gate.
+5. `planning_correction` is a Planner write action followed by the same Reviewer's focused delta re-review when the correction is bounded. A new full planning review is required only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity.
 6. `awaiting_implementation_approval` freezes the exact approved artifact paths and review evidence. Advance to `implementation` only when the approval remains valid and the user's entire response is exactly `Approved, implement.`.
-7. `implementation` executes only approved, dependency-ready work and then advances to `implementation_review`.
-8. `implementation_review` advances to `implementation_correction` when corrections are required, or to `post_implementation_convergence` when the reviewed delivery is ready to reconcile.
+7. `implementation` executes coherent dependency-ready batches. Normal batches use implementer verification and remain in `implementation`; they do not require an independent review for each microtask. Enter `implementation_review` only for a high-risk batch, security, persistence/migration, API contract, critical shared code, Luna pre-integration, or Luna post-integration.
+8. `implementation_review` advances to `implementation_correction` when corrections are required, or returns to `implementation` when its triggered review is approved.
 9. `implementation_correction` returns corrected work to `implementation_review`.
-10. `post_implementation_convergence` uses the Reviewer's read-only `speckit-analyze` to compare sources, approved artifacts, tasks, and delivered behavior. Approved-scope work already present in `tasks.md` returns as an implementation correction. Approved-scope work absent from `tasks.md` requires a Planner `speckit-tasks` contract repair; `speckit-converge` is permitted only after proven `speckit-implement` execution of the current tasks, or when a future converge contract explicitly supports the actual executor. Any task change returns to `planning_review`.
-11. `final_review` independently verifies the complete integrated result. Advance to `complete` only on `approved`; route findings to the applicable correction state. Use `blocked` or `cancelled` when the cycle ends without a verified delivery.
+10. `final_review` combines the Reviewer's read-only `speckit-analyze` reconciliation with its final integrated verdict. Approved-scope work already present in `tasks.md` returns as an implementation correction. Approved-scope work absent from `tasks.md` requires a Planner `speckit-tasks` contract repair; `speckit-converge` is permitted only after proven `speckit-implement` execution of the current tasks, or when a future converge contract explicitly supports the actual executor. Any task change returns to `planning_review`.
+11. Advance to `complete` only when the final Reviewer returns `approved`; route findings to the applicable correction state. Use `blocked` or `cancelled` when the cycle ends without a verified delivery.
 
 ## Planning and Implementation Gates
 

@@ -46,7 +46,7 @@ For the complete task set, report routing evidence using the Planner Result cont
 
 ## Planning Correction and Review Handoff
 
-Accept planning-review findings criterion by criterion. Correct only the official artifacts implicated by confirmed findings, then report the new complete artifact set and exact changed paths. Every correction invalidates an earlier approval. Return a coherent package to `planning_review`; do not ask for implementation approval or change lifecycle state yourself.
+Accept planning-review findings criterion by criterion. Correct only the official artifacts implicated by confirmed findings, then report the new complete artifact set and exact changed paths. Every correction invalidates an earlier approval. A bounded correction returns to the same Reviewer for a focused delta re-review; a new full review is required only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity. Do not ask for implementation approval or change lifecycle state yourself.
 
 ## Post-Implementation Convergence
 
