@@ -55,17 +55,20 @@ codex_home=${CODEX_HOME:-"$HOME/.codex"}
 skill_source="$repo_root/skills/sdd-workflow"
 skill_destination="$codex_home/skills/sdd-workflow"
 agent_names=(
-  sdd-orchestrator.toml
   sdd-planner.toml
   sdd-implementer-main.toml
   sdd-implementer-high.toml
   sdd-implementer-simple.toml
   sdd-reviewer.toml
 )
+retired_agent_names=(sdd-orchestrator.toml)
 
 if $dry_run; then
   printf 'Dry run: would install %s and %d managed agents into %s.\n' \
     "$skill_source" "${#agent_names[@]}" "$codex_home"
+  for agent in "${retired_agent_names[@]}"; do
+    printf 'Dry run: would retire %s from %s/agents.\n' "$agent" "$codex_home"
+  done
   exit 0
 fi
 
@@ -84,6 +87,9 @@ backup_path "$skill_destination" 'skills/sdd-workflow'
 for agent in "${agent_names[@]}"; do
   backup_path "$codex_home/agents/$agent" "agents/$agent"
 done
+for agent in "${retired_agent_names[@]}"; do
+  backup_path "$codex_home/agents/$agent" "agents/$agent"
+done
 
 mkdir -p "$codex_home/skills" "$codex_home/agents"
 if [[ -e $skill_destination ]]; then
@@ -92,6 +98,9 @@ fi
 cp -R "$skill_source" "$skill_destination"
 for agent in "${agent_names[@]}"; do
   cp "$repo_root/agents/$agent" "$codex_home/agents/$agent"
+done
+for agent in "${retired_agent_names[@]}"; do
+  rm -f "$codex_home/agents/$agent"
 done
 
 if $has_backup; then

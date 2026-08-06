@@ -25,7 +25,6 @@ REFERENCE_NAMES = (
     "sources-and-artifacts.md",
 )
 CANONICAL_AGENTS = {
-    "sdd-orchestrator.toml": ("sdd-orchestrator", "gpt-5.6-sol", "high", "read-only"),
     "sdd-planner.toml": ("sdd-planner", "gpt-5.6-sol", "high", "workspace-write"),
     "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-5.6-terra", "medium", "workspace-write"),
     "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-5.6-terra", "high", "workspace-write"),

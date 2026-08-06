@@ -54,13 +54,15 @@ test_incompatible_explicit_python_fails_before_validation_or_writes() {
 }
 
 test_fresh_install() {
-  # Break caught: a fresh install omits managed content.
+  # Break caught: a fresh install retains the retired Orchestrator or omits
+  # one of the five active managed agents.
   local home="$temp_root/fresh"
   run_install "$home"
   assert_file "$home/skills/sdd-workflow/SKILL.md"
   local count
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
-  [[ $count == 6 ]] || fail "expected six managed agents, got $count"
+  [[ $count == 5 ]] || fail "expected five managed agents, got $count"
+  assert_not_exists "$home/agents/sdd-orchestrator.toml"
 }
 
 test_reinstall_backs_up_managed_destinations() {
@@ -77,6 +79,22 @@ test_reinstall_backs_up_managed_destinations() {
   [[ $(cat "$backup/agents/sdd-planner.toml") == previous-agent ]] || fail 'agent backup lost original bytes'
 }
 
+test_upgrade_backs_up_and_retires_orchestrator() {
+  # Break caught: an upgrade deletes the exact retired file without backup or
+  # leaves it active after installing the five-agent distribution.
+  local home="$temp_root/retire-orchestrator"
+  local expected="$temp_root/previous-orchestrator.toml"
+  mkdir -p "$home/agents"
+  printf 'previous-orchestrator\nbytes\n' >"$home/agents/sdd-orchestrator.toml"
+  printf 'previous-orchestrator\nbytes\n' >"$expected"
+  run_install "$home"
+  local backup
+  backup=$(find "$home/backups" -type d -name 'sdd-workflow-*' -print -quit)
+  [[ -n $backup ]] || fail 'expected a retirement backup'
+  cmp -s "$expected" "$backup/agents/sdd-orchestrator.toml" || fail 'retired agent backup lost original bytes'
+  assert_not_exists "$home/agents/sdd-orchestrator.toml"
+}
+
 test_unmanaged_agents_are_unchanged() {
   # Break caught: install rewrites an agent it does not own.
   local home="$temp_root/unmanaged"
@@ -88,17 +106,25 @@ test_unmanaged_agents_are_unchanged() {
   [[ $(cksum "$home/agents/keep-me.toml") == "$before" ]] || fail 'unmanaged agent changed'
 }
 
-test_dry_run_writes_nothing() {
-  # Break caught: dry-run changes the filesystem.
+test_dry_run_reports_retirement_and_writes_nothing() {
+  # Break caught: dry-run hides retired-agent removal or changes the filesystem.
   local home="$temp_root/dry-run"
-  run_install "$home" --dry-run
-  assert_not_exists "$home"
+  mkdir -p "$home/agents"
+  printf 'retired-agent\n' >"$home/agents/sdd-orchestrator.toml"
+  local before
+  before=$(cksum "$home/agents/sdd-orchestrator.toml")
+  run_install "$home" --dry-run >"$temp_root/dry-run.out"
+  grep -F 'would retire sdd-orchestrator.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report retirement'
+  [[ $(cksum "$home/agents/sdd-orchestrator.toml") == "$before" ]] || fail 'dry-run changed retired agent'
+  assert_not_exists "$home/skills/sdd-workflow"
+  assert_not_exists "$home/backups"
 }
 
 test_validation_precedes_writes
 test_incompatible_explicit_python_fails_before_validation_or_writes
 test_fresh_install
 test_reinstall_backs_up_managed_destinations
+test_upgrade_backs_up_and_retires_orchestrator
 test_unmanaged_agents_are_unchanged
-test_dry_run_writes_nothing
+test_dry_run_reports_retirement_and_writes_nothing
 printf 'install tests passed\n'

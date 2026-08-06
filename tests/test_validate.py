@@ -78,11 +78,8 @@ class ValidateDistributionTests(unittest.TestCase):
             self.root / "skills/sdd-workflow/references/orchestrator.md"
         ).read_text(encoding="utf-8")
         planner_agent = (self.root / "agents/sdd-planner.toml").read_text(encoding="utf-8")
-        orchestrator_agent = (self.root / "agents/sdd-orchestrator.toml").read_text(
-            encoding="utf-8"
-        )
 
-        for content in (sources, planner, orchestrator, planner_agent, orchestrator_agent):
+        for content in (sources, planner, orchestrator, planner_agent):
             self.assertIn(".specify/feature.json", content)
         self.assertIn("No other path under `.specify/`", sources)
         self.assertIn("changed_paths", planner)
@@ -98,11 +95,8 @@ class ValidateDistributionTests(unittest.TestCase):
         reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
             encoding="utf-8"
         )
-        orchestrator_agent = (self.root / "agents/sdd-orchestrator.toml").read_text(
-            encoding="utf-8"
-        )
 
-        for content in (skill, planner, reviewer, orchestrator_agent):
+        for content in (skill, planner, reviewer):
             self.assertIn("speckit-tasks", content)
             self.assertIn("speckit-implement", content)
         self.assertIn("always runs `speckit-analyze`", reviewer)
@@ -236,6 +230,11 @@ class ValidateDistributionTests(unittest.TestCase):
         # additional orchestrator agent.
         skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("must not dispatch `sdd-orchestrator`", skill)
+
+    def test_retired_orchestrator_agent_is_not_distributed(self) -> None:
+        # Break caught: root-chat coordination still ships a competing managed
+        # sdd-orchestrator agent.
+        self.assertFalse((self.root / "agents/sdd-orchestrator.toml").exists())
 
     def test_new_cycle_ignores_active_feature_as_selection_input(self) -> None:
         # Break caught: a historical active package becomes input for a new
