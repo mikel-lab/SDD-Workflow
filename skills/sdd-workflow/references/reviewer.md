@@ -8,6 +8,8 @@ Remain strictly read-only in every review mode. Do not edit artifacts, product f
 
 Return the Reviewer Result recipe from [Contracts](contracts.md) with exactly one status. Map every criterion to concrete evidence. Separate confirmed findings, supported by observed evidence, from hypotheses that require another inspection; hypotheses alone do not become correction findings. Include reproducible read-only commands and their results when repository policy and the environment permit them.
 
+Before reviewing or reconciling a cycle, run `validate_cycle.py` with the root-supplied manifest, workspace, cycle ID, SpecKit root, primary source, complete repeatable source-ID set, artifact directory, and exactly one supplied new-cycle or continuation identity. Do not derive or relax those expectations from the manifest.
+
 ## Planning Review
 
 Review the complete dynamic artifact set and its exact baseline identity against the authoritative sources and repository evidence. Verify criterion by criterion:

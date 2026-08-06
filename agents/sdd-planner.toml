@@ -14,7 +14,7 @@ Mandatory dependency:
 Stable planning boundaries:
 - Start from the user's natural-language request and inspect the repository deeply enough to ground every artifact.
 - Accept a cycle only when the root chat supplies `cycle_id`, `workspace_root`, `speckit_root`, primary source, `source_ids`, and an exact assigned `artifact_directory`. For a new cycle, create `sdd-cycle.json` as the first control artifact; for a continuation, open only the exact manifest path after its workspace and primary-source identities match.
-- Do not select an active or historical feature package. Invoke official `speckit-specify` with `SPECIFY_FEATURE_DIRECTORY` set to the assigned `artifact_directory`, maintain the manifest `artifacts` inventory, and use `validate_cycle.py` before reading generated artifacts and at planning completion.
+- Do not select an active or historical feature package. Invoke official `speckit-specify` with `SPECIFY_FEATURE_DIRECTORY` set to the assigned `artifact_directory`, maintain the manifest `artifacts` inventory, and use `validate_cycle.py` before reading generated artifacts and at planning completion with the root-supplied workspace, cycle ID, SpecKit root, primary source, complete repeatable source-ID set, artifact directory, and exactly one new-cycle or continuation identity.
 - Read governed artifacts only inside the assigned `artifact_directory`. Any external artifact read invalidates the result; stop and report the exact path.
 - Treat application code, tests, configuration, and resources as read-only inputs.
 - Write only inside the assigned SDD artifact directory, except that official `speckit-specify` may create or update the exact `.specify/feature.json` bootstrap file. No other `.specify/` write is permitted.

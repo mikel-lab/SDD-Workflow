@@ -487,6 +487,9 @@ class CycleValidatorTests(unittest.TestCase):
         self.manifest_path.write_text(json.dumps(self.manifest), encoding="utf-8")
 
     def validate(self, *extra_args: str) -> subprocess.CompletedProcess[str]:
+        return self.run_validator(*self.external_identity_args("--new-cycle", *extra_args))
+
+    def run_validator(self, *validator_args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 PYTHON,
@@ -497,18 +500,118 @@ class CycleValidatorTests(unittest.TestCase):
                 str(self.workspace),
                 "--expected-source",
                 "TEAM-123",
-                *extra_args,
+                *validator_args,
             ],
             text=True,
             capture_output=True,
             check=False,
         )
 
+    def external_identity_args(self, *extra_args: str) -> list[str]:
+        return [
+            "--expected-cycle-id",
+            "20260806-143500",
+            "--expected-speckit-root",
+            str(self.root),
+            "--expected-artifact-directory",
+            "specs/20260806-143500-mobile-app-team-123-feature",
+            "--expected-source-id",
+            "TEAM-123",
+            *extra_args,
+        ]
+
+    def validate_with_external_identity(
+        self, *extra_args: str
+    ) -> subprocess.CompletedProcess[str]:
+        return self.validate(*extra_args)
+
     def test_valid_isolated_cycle_passes(self) -> None:
         # Break caught: a valid, self-contained cycle is rejected.
         result = self.validate("--require-tasks")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Cycle validation passed.", result.stdout)
+
+    def test_external_identity_validates_the_complete_cycle(self) -> None:
+        # Break caught: the manifest is trusted instead of the root-chat identity.
+        result = self.validate_with_external_identity("--require-tasks")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_altered_cycle_id_fails_external_identity_check(self) -> None:
+        # Break caught: a substituted manifest cycle ID is accepted.
+        self.manifest["cycle_id"] = "20260806-999999"
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cycle ID", result.stderr)
+
+    def test_altered_speckit_root_fails_external_identity_check(self) -> None:
+        # Break caught: a manifest redirects validation to another SpecKit root.
+        self.manifest["speckit_root"] = str((self.root / "other-root").resolve())
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("speckit root", result.stderr)
+
+    def test_altered_artifact_directory_fails_external_identity_check(self) -> None:
+        # Break caught: a manifest selects a different package than the assigned one.
+        self.manifest["artifact_directory"] = "specs/other-cycle"
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("artifact directory", result.stderr)
+
+    def test_extra_source_id_fails_external_identity_check(self) -> None:
+        # Break caught: an unassigned source is silently added to the manifest.
+        self.manifest["source_ids"] = ["TEAM-123", "TEAM-456"]
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source IDs", result.stderr)
+
+    def test_missing_source_id_fails_external_identity_check(self) -> None:
+        # Break caught: an assigned source is omitted from the manifest.
+        self.manifest["source_ids"] = []
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source IDs", result.stderr)
+
+    def test_duplicate_source_id_fails_external_identity_check(self) -> None:
+        # Break caught: duplicate source IDs evade set-only comparison.
+        self.manifest["source_ids"] = ["TEAM-123", "TEAM-123"]
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("source IDs", result.stderr)
+
+    def test_continuation_manifest_fails_new_cycle_identity_check(self) -> None:
+        # Break caught: a continuation is accepted when a new cycle was assigned.
+        self.manifest["continuation_of"] = "20260801-120000"
+        self.write_manifest()
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("new-cycle", result.stderr)
+
+    def test_wrong_continuation_identity_fails_external_identity_check(self) -> None:
+        # Break caught: a continuation from another cycle is accepted.
+        self.manifest["continuation_of"] = "20260801-120000"
+        self.write_manifest()
+        result = self.run_validator(
+            *self.external_identity_args(
+                "--expected-continuation-of", "20260801-999999"
+            )
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("continuation", result.stderr)
+
+    def test_relative_sibling_package_reference_fails(self) -> None:
+        # Break caught: a local ../ reference imports an artifact from another cycle.
+        (self.artifact_directory / "spec.md").write_text(
+            "See ../other-cycle/spec.md\n", encoding="utf-8"
+        )
+        result = self.validate_with_external_identity()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("relative artifact reference", result.stderr)
 
     def test_active_feature_mismatch_fails(self) -> None:
         # Break caught: bootstrap selects a different feature package.
@@ -528,21 +631,9 @@ class CycleValidatorTests(unittest.TestCase):
 
     def test_primary_source_mismatch_fails(self) -> None:
         # Break caught: the requested source is not the cycle's primary source.
-        result = subprocess.run(
-            [
-                PYTHON,
-                str(SOURCE_ROOT / "skills/sdd-workflow/scripts/validate_cycle.py"),
-                "--manifest",
-                str(self.manifest_path),
-                "--expected-workspace",
-                str(self.workspace),
-                "--expected-source",
-                "TEAM-456",
-            ],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+        self.manifest["primary_source"] = "TEAM-456"
+        self.write_manifest()
+        result = self.validate()
         self.assertEqual(result.returncode, 1)
         self.assertIn("primary source", result.stderr)
 

@@ -42,7 +42,7 @@ After every Planner action:
 2. Independently compare the reported changed paths with available workspace evidence.
 3. Confirm every reported artifact read is inside the assigned directory. An external artifact read invalidates the Planner Result.
 4. Confirm every write satisfies the pre-gate boundary in [Sources and Artifacts](sources-and-artifacts.md): assigned-directory artifacts plus only the exact `.specify/feature.json` bootstrap write by `speckit-specify`; reject every other `.specify/` write.
-5. At planning completion, require a successful `validate_cycle.py` result before moving to `planning_review`.
+5. At planning completion, require a successful `validate_cycle.py` result whose command supplies the root-owned workspace, cycle ID, SpecKit root, primary source, complete source-ID set, artifact directory, and exactly one new-cycle or continuation identity before moving to `planning_review`.
 6. If any path is missing from the report or outside the boundary, stop the affected flow, preserve the evidence without destructive cleanup, and report the exact path and state.
 
 When the Planner returns a material blocker, relay only the minimum specific question to the user, with the reviewed evidence and why the answer is required. The Planner and Reviewer never question the user directly. Record the answer as an explicit cycle decision and return it to the Planner.

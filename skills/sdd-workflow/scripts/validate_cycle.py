@@ -23,6 +23,7 @@ MANIFEST_KEYS = {
     "continuation_of",
 }
 SPEC_PATH = re.compile(r"(?<![A-Za-z0-9_.-])(specs/[A-Za-z0-9_./-]+)")
+LOCAL_REFERENCE = re.compile(r"(?<![A-Za-z0-9_.-])((?:\.{1,2}/)[A-Za-z0-9_./-]+)")
 TASK_ID = re.compile(r"\bT[0-9]+\b")
 
 
@@ -80,10 +81,34 @@ def referenced_spec_paths(text: str) -> set[str]:
     return set(SPEC_PATH.findall(text))
 
 
+def referenced_local_paths(text: str) -> set[str]:
+    """Return explicit local paths mentioned by a governed artifact."""
+    return set(LOCAL_REFERENCE.findall(text))
+
+
+def resolve_local_reference(artifact_dir: Path, artifact_path: Path, reference: str) -> Path:
+    """Resolve a local reference from its artifact and keep it inside the package."""
+    resolved_directory = artifact_dir.resolve()
+    resolved_reference = (artifact_path.parent / reference).resolve(strict=False)
+    try:
+        resolved_reference.relative_to(resolved_directory)
+    except ValueError as error:
+        raise ValueError(
+            "relative artifact reference escapes selected artifact directory: "
+            f"{reference}"
+        ) from error
+    return resolved_reference
+
+
 def validate_cycle(
     manifest_path: Path,
     expected_workspace: Path,
     expected_source: str,
+    expected_cycle_id: str,
+    expected_speckit_root: Path,
+    expected_artifact_directory: str,
+    expected_source_ids: list[str],
+    expected_continuation_of: str | None,
     require_tasks: bool,
 ) -> list[str]:
     errors: list[str] = []
@@ -122,13 +147,35 @@ def validate_cycle(
     artifact_relative = manifest["artifact_directory"]
     declared_artifacts = artifacts
     allowed_sources = set(source_ids)
+    expected_sources = set(expected_source_ids)
 
     if workspace.resolve() != expected_workspace.resolve():
         errors.append("workspace identity does not match --expected-workspace")
+    if manifest["cycle_id"] != expected_cycle_id:
+        errors.append("cycle ID does not match --expected-cycle-id")
+    if speckit_root.resolve() != expected_speckit_root.resolve():
+        errors.append("speckit root does not match --expected-speckit-root")
+    if artifact_relative != expected_artifact_directory:
+        errors.append(
+            "artifact directory does not match --expected-artifact-directory"
+        )
     if manifest["primary_source"] != expected_source:
         errors.append("primary source does not match --expected-source")
+    if len(source_ids) != len(allowed_sources):
+        errors.append("manifest source IDs must not contain duplicates")
+    if len(expected_source_ids) != len(expected_sources):
+        errors.append("--expected-source-id values must not contain duplicates")
+    if allowed_sources != expected_sources:
+        errors.append("source IDs do not match --expected-source-id values")
     if manifest["primary_source"] not in allowed_sources:
         errors.append("primary source must be included in source_ids")
+    if expected_continuation_of is None:
+        if manifest["continuation_of"] is not None:
+            errors.append("continuation identity does not match --new-cycle")
+    elif manifest["continuation_of"] != expected_continuation_of:
+        errors.append(
+            "continuation identity does not match --expected-continuation-of"
+        )
     if len(declared_artifacts) != len(set(declared_artifacts)):
         errors.append("manifest artifacts must not contain duplicates")
 
@@ -183,6 +230,11 @@ def validate_cycle(
                 continue
             if referenced_path != artifact_dir and artifact_dir not in referenced_path.parents:
                 errors.append(f"cross-package specs/ reference in {relative}: {referenced}")
+        for referenced in referenced_local_paths(text):
+            try:
+                resolve_local_reference(artifact_dir, path, referenced)
+            except ValueError as error:
+                errors.append(f"{error} in {relative}")
         for key in JIRA_KEY.findall(text):
             if key not in allowed_sources:
                 errors.append(f"unauthorized Jira key in {relative}: {key}")
@@ -207,6 +259,13 @@ def main() -> int:
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--expected-workspace", required=True, type=Path)
     parser.add_argument("--expected-source", required=True)
+    parser.add_argument("--expected-cycle-id", required=True)
+    parser.add_argument("--expected-speckit-root", required=True, type=Path)
+    parser.add_argument("--expected-artifact-directory", required=True)
+    parser.add_argument("--expected-source-id", action="append", required=True)
+    continuation_group = parser.add_mutually_exclusive_group(required=True)
+    continuation_group.add_argument("--new-cycle", action="store_true")
+    continuation_group.add_argument("--expected-continuation-of")
     parser.add_argument("--require-tasks", action="store_true")
     args = parser.parse_args()
 
@@ -214,6 +273,11 @@ def main() -> int:
         args.manifest,
         args.expected_workspace,
         args.expected_source,
+        args.expected_cycle_id,
+        args.expected_speckit_root,
+        args.expected_artifact_directory,
+        args.expected_source_id,
+        args.expected_continuation_of,
         args.require_tasks,
     )
     if errors:

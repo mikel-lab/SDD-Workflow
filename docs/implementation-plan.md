@@ -45,7 +45,7 @@
 - Modify: `scripts/validate.py`
 
 **Interfaces:**
-- CLI: `python validate_cycle.py --manifest PATH --expected-workspace PATH --expected-source TEAM-123 [--require-tasks]`
+- CLI: `python validate_cycle.py --manifest PATH --expected-workspace PATH --expected-cycle-id ID --expected-speckit-root PATH --expected-source TEAM-123 --expected-source-id TEAM-123 [--expected-source-id TEAM-456 ...] --expected-artifact-directory specs/ID-feature (--new-cycle | --expected-continuation-of ID) [--require-tasks]`
 - Manifest keys: `schema_version`, `cycle_id`, `workspace_root`, `speckit_root`, `primary_source`, `source_ids`, `artifact_directory`, `artifacts`, `continuation_of`.
 - Success: exit 0 and `Cycle validation passed.`; failure: exit 1 and actionable `ERROR:` lines.
 
@@ -116,12 +116,17 @@ def validate_cycle(
     manifest_path: Path,
     expected_workspace: Path,
     expected_source: str,
+    expected_cycle_id: str,
+    expected_speckit_root: Path,
+    expected_artifact_directory: str,
+    expected_source_ids: list[str],
+    expected_continuation_of: str | None,
     require_tasks: bool,
 ) -> list[str]: ...
 def main() -> int: ...
 ```
 
-The implementation must require the exact schema, compare workspace and source, resolve all paths inside the declared roots, reject symlinks, compare `artifacts` with actual files except `sdd-cycle.json`, read only listed files, reject cross-package `specs/` references and unauthorized Jira keys, verify `.specify/feature.json`, and require the first task ID to be `T001` when `--require-tasks` is set. It must never enumerate sibling feature directories.
+The implementation must require the exact schema; compare every root-supplied identity, complete source-ID set, and exclusive new/continuation mode; resolve all paths inside the declared roots; reject symlinks; compare `artifacts` with actual files except `sdd-cycle.json`; read only listed files; reject cross-package `specs/` references, local relative references that escape the containing package, and unauthorized Jira keys; verify `.specify/feature.json`; and require the first task ID to be `T001` when `--require-tasks` is set. It must never enumerate sibling feature directories.
 
 - [ ] **Step 4: Register the runtime file**
 
@@ -336,7 +341,7 @@ python3 -B -m unittest -v tests/test_validate.py
 SDD_PYTHON=python3 bash tests/test_install.sh
 python3 -B scripts/validate.py
 bash -n scripts/install.sh tests/test_install.sh
-find . -type f -not -path './.git/*' | wc -l
+git ls-files | wc -l
 ```
 
 Expected: all pass and count 24.
@@ -463,7 +468,7 @@ python3 -B -m unittest -v tests/test_validate.py
 SDD_PYTHON=python3 bash tests/test_install.sh
 python3 -B scripts/validate.py
 python3 -B "$HOME/.codex/skills/.system/skill-creator/scripts/quick_validate.py" skills/sdd-workflow
-find . -type f -not -path './.git/*' | sort
+git ls-files | sort
 git diff --check
 ```
 

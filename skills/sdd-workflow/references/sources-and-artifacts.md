@@ -81,9 +81,11 @@ For a new cycle, the root chat follows this exact order:
 5. validate the manifest and active feature output with `skills/sdd-workflow/scripts/validate_cycle.py`;
 6. permit artifact reads only from `artifact_directory`.
 
+Every cycle-validator invocation receives identity only from the root chat, never from fields trusted in the manifest: `--manifest`, `--expected-workspace`, `--expected-cycle-id`, `--expected-speckit-root`, `--expected-source`, every complete repeatable `--expected-source-id`, and `--expected-artifact-directory`. It supplies exactly one mode: `--new-cycle` for a new cycle or `--expected-continuation-of <cycle_id>` for an explicit continuation. The validator rejects any missing, extra, or duplicate source ID and any identity mismatch.
+
 For a new cycle, the root chat and Planner must not use an active feature as a selection input. The active feature file is only an output checked after the manifest assigns the directory. Do not use `find`, `rg`, globbing, or equivalent artifact discovery across the feature root; broad historical-spec discovery is forbidden.
 
-Continuation is a separate conditional, allowed only on explicit user continuation intent. Before opening an existing package, the root chat supplies its exact manifest path and verifies that the manifest, exact `artifact_directory`, `workspace_root`, and primary-source identities match the continuation request. A related request, a visible active package, or a similar source identifier is not continuation intent. The workspace and primary-source identities must match; otherwise create a new cycle or stop for clarification.
+Continuation is a separate conditional, allowed only on explicit user continuation intent. Before opening an existing package, the root chat supplies its exact manifest path and verifies it with `--expected-continuation-of` plus the exact `cycle_id`, `artifact_directory`, `workspace_root`, `speckit_root`, primary-source, and complete source-ID identities. A related request, a visible active package, or a similar source identifier is not continuation intent. The workspace and primary-source identities must match; otherwise create a new cycle or stop for clarification.
 
 ## Isolated Artifact Set
 
@@ -99,7 +101,7 @@ Treat the official artifacts actually generated only inside the selected `artifa
 - `tasks.md`;
 - every other official artifact produced by the compatible SpecKit version for that feature.
 
-The set is dynamic, not a fixed checklist. The root chat records exact generated paths and the review evidence that approved them. Planner and Reviewer results record every `artifact_reads` path. Any artifact read outside `artifact_directory` invalidates that role result; stop the affected action and return the exact external path as a blocker. Reviewer reports remain structured response evidence rather than files in this set.
+The set is dynamic, not a fixed checklist. The root chat records exact generated paths and the review evidence that approved them. Planner and Reviewer results record every `artifact_reads` path. Any artifact read outside `artifact_directory` invalidates that role result; stop the affected action and return the exact external path as a blocker. Listed artifacts may reference local relative paths only when resolution from the containing artifact remains inside `artifact_directory`; the validator never discovers sibling packages. Reviewer reports remain structured response evidence rather than files in this set.
 
 ## Pre-Gate Write Boundary
 

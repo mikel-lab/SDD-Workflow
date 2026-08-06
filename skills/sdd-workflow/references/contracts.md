@@ -28,7 +28,7 @@ assumptions: <each assumption in the required four-line assumption format>
 routing evidence: <complexity, isolation, dependencies, owned paths, and independent checks>
 questions: <minimum material question, evidence reviewed, and why the answer is required>
 changed_paths: <exact SDD artifact paths written in this action, including .specify/feature.json when official speckit-specify created or updated it>
-cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, expected source, and applicable flags>
+cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, cycle ID, SpecKit root, primary source, each repeatable source ID, artifact directory, and exactly one new-cycle or expected-continuation identity>
 cycle_validation_result: <exit status plus concise stdout or stderr evidence>
 blockers: <unresolved condition, impact, and required decision or dependency>
 ```
@@ -68,7 +68,7 @@ scope: <artifact set, delivery, or integrated result reviewed plus baseline iden
 criterion evidence: <criterion-to-source, artifact, code, test, or observed-result mapping>
 findings: <severity, affected criterion, evidence, and required correction>
 commands: <exact read-only command or inspection and result>
-cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, expected source, and applicable flags>
+cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, cycle ID, SpecKit root, primary source, each repeatable source ID, artifact directory, and exactly one new-cycle or expected-continuation identity>
 cycle_validation_result: <exit status plus concise stdout or stderr evidence>
 conditioned checks: <required check not completed, reason, affected criteria, and retry condition>
 residual risk: <verified remaining risk and impact>
