@@ -5,7 +5,9 @@
 - Fecha: 2026-08-06
 - Alcance: evolución global y reutilizable de `sdd-workflow`
 - Estado del diseño: aprobado por el usuario
-- Implementación: pendiente
+- Implementación: verificada e instalada globalmente
+- Evidencia final: 57 pruebas Python, pruebas del instalador, validadores de distribución y skill, sintaxis Bash, paridad byte a byte y smoke test del runtime instalado.
+- Backup de migración: `$CODEX_HOME/backups/sdd-workflow-20260806T131501Z-48525`
 - Motivo: una ejecución real permitió que el chat y un subagente compartieran la coordinación y reutilizó un paquete SpecKit de otra tarea, arrastrando tareas y revisiones históricas.
 
 ## Objetivos
