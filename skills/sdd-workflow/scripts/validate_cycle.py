@@ -11,6 +11,9 @@ from pathlib import Path
 
 
 JIRA_KEY = re.compile(r"\b[A-Z][A-Z0-9]+-[0-9]+\b")
+JIRA_BROWSE_KEY = re.compile(
+    r"(?:https?://[^\s)\]}>]+)?/browse/(?P<key>[A-Z][A-Z0-9]+-[0-9]+)\b"
+)
 MANIFEST_KEYS = {
     "schema_version",
     "cycle_id",
@@ -86,6 +89,23 @@ def referenced_local_paths(text: str) -> set[str]:
     return set(LOCAL_REFERENCE.findall(text))
 
 
+def authorized_jira_keys(source_ids: list[str]) -> set[str]:
+    """Return Jira keys explicitly represented by the cycle source identities."""
+    return {key for source_id in source_ids for key in JIRA_KEY.findall(source_id)}
+
+
+def unauthorized_jira_keys(text: str, allowed_keys: set[str]) -> set[str]:
+    """Find foreign Jira references without treating SpecKit IDs as Jira keys."""
+    allowed_projects = {key.rsplit("-", 1)[0] for key in allowed_keys}
+    explicit_browse_keys = {match.group("key") for match in JIRA_BROWSE_KEY.finditer(text)}
+    same_project_keys = {
+        key
+        for key in JIRA_KEY.findall(text)
+        if key.rsplit("-", 1)[0] in allowed_projects
+    }
+    return (explicit_browse_keys | same_project_keys) - allowed_keys
+
+
 def resolve_local_reference(artifact_dir: Path, artifact_path: Path, reference: str) -> Path:
     """Resolve a local reference from its artifact and keep it inside the package."""
     resolved_directory = artifact_dir.resolve()
@@ -148,6 +168,7 @@ def validate_cycle(
     declared_artifacts = artifacts
     allowed_sources = set(source_ids)
     expected_sources = set(expected_source_ids)
+    allowed_jira_keys = authorized_jira_keys(source_ids)
 
     if workspace.resolve() != expected_workspace.resolve():
         errors.append("workspace identity does not match --expected-workspace")
@@ -235,9 +256,8 @@ def validate_cycle(
                 resolve_local_reference(artifact_dir, path, referenced)
             except ValueError as error:
                 errors.append(f"{error} in {relative}")
-        for key in JIRA_KEY.findall(text):
-            if key not in allowed_sources:
-                errors.append(f"unauthorized Jira key in {relative}: {key}")
+        for key in sorted(unauthorized_jira_keys(text, allowed_jira_keys)):
+            errors.append(f"unauthorized Jira key in {relative}: {key}")
 
     if require_tasks:
         tasks_path = listed_paths.get("tasks.md")

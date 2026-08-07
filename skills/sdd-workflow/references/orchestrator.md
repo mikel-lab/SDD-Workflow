@@ -2,15 +2,23 @@
 
 ## Role Boundary
 
-The invoking root chat is the sole coordination, state-transition, and gate authority. It must not dispatch `sdd-orchestrator` or create a competing coordinator. Read enough at intake to validate the request and access, then delegate source and repository analysis to the Planner. Do not reproduce the Planner's Jira, Figma, repository, architecture, or artifact analysis. Do not implement product changes or edit planning artifacts.
+The invoking root chat is the sole coordination, state-transition, and gate authority. It must not dispatch `sdd-orchestrator` or create a competing coordinator. Read enough at intake to validate the request and access, then delegate source and repository analysis to the Planner. Do not reproduce the Planner's Jira, Figma, repository, architecture, or artifact analysis. Do not implement product changes, edit planning artifacts, or perform Planner or Reviewer work as a fallback.
 
 Report every handoff with the Orchestrator Status recipe in [Contracts](contracts.md). Apply [Lifecycle and Gates](lifecycle-and-gates.md) without skipping states.
+
+## Delegated Action Monitoring
+
+Maintain one active owner for each Planner, implementer, or Reviewer action. A wait timeout is not a failure: it means only that no terminal result arrived during that wait. Do not count wait timeouts as correction attempts, review attempts, or evidence that an agent is stalled.
+
+Never interrupt, close, or replace an active owner merely because a wait timed out, an action is taking longer than expected, or no final contract has arrived yet. Continue bounded waits and user-visible status updates without restarting the work. Send at most one non-interrupting status request when the agent exposes no progress signal; do not send repeated instructions that change or duplicate its assignment.
+
+Replace an owner only after an explicit terminal failure, an explicit blocker that requires a new action, a confirmed boundary violation, user cancellation, or completed output that the lifecycle routes to another action. Close a completed owner only after capturing its final contract. The root chat must not perform Planner or Reviewer work as a fallback for latency or tool inconvenience; if a role is genuinely unavailable, report the infrastructure blocker without advancing its gate.
 
 ## Intake and Cycle Authority
 
 1. Record the Jira link or natural-language request, explicit user decisions, repository root and instructions, current workspace state, and available connectors or browser access.
 2. Verify that the core skill, all references required for the next roles, and required SpecKit skills are installed, readable, and compatible. Fail closed before any write when a dependency is unavailable.
-3. Check essential source accessibility in the order defined by [Sources and Artifacts](sources-and-artifacts.md). Do not treat an access check as the Planner's or Reviewer's independent source analysis.
+3. Check essential source accessibility in the order defined by [Sources and Artifacts](sources-and-artifacts.md). Keep the probe to the minimum needed to prove access; do not fetch full Jira, Figma, or repository analysis that the Planner and Reviewer own.
 4. For a new cycle, resolve `workspace_root` and `speckit_root` separately; generate `cycle_id`; assign an absent `artifact_directory`; and record the primary source and complete `source_ids`. Do not consult an active feature or discover historical packages to make that selection.
 5. A continuation occurs only when the user explicitly requests one. Supply the Planner the exact manifest path only after its exact directory, workspace, and primary-source identities match the request; otherwise create a new cycle or stop for clarification.
 6. At the beginning of each cycle, ask once whether visible Luna tasks are authorized for that cycle. Record `authorized`, `denied`, or `not answered`. Authorization expires when the cycle completes, is cancelled, or restarts; prior authorization never carries forward.
@@ -34,7 +42,7 @@ The active feature file may be checked only as the official bootstrap output aft
 
 ## Planner Delegation and Boundary Validation
 
-Send one complete Planner briefing containing the request, accessible source locations and limitations, explicit user decisions, repository root and instructions, workspace condition, current state, cycle identity, `workspace_root`, `speckit_root`, exact assigned `artifact_directory`, primary source, `source_ids`, cycle counters, and the required Planner Result contract. Delegate all deep analysis and artifact creation to the Planner.
+Send one compact Planner briefing containing the request, accessible source locations and limitations, explicit user decisions, repository instructions, workspace condition, current state, the complete literal Cycle Identity Handoff from [Contracts](contracts.md), and the required Planner Result. Do not paste the skill body or replace literal source IDs with labels. Delegate all deep analysis and artifact creation to the Planner.
 
 After every Planner action:
 
@@ -49,7 +57,7 @@ When the Planner returns a material blocker, relay only the minimum specific que
 
 ## Mandatory Planning Review
 
-When the Planner reports a coherent package, run and record the cycle validator before `planning_review`, then commission a fresh, independent Reviewer. Supply the sources, repository instructions, exact manifest and dynamic artifact paths, Planner evidence, and current baseline identity; do not supply a desired verdict. Require the Reviewer to report every artifact read and the validator command/result; an external artifact read invalidates its result.
+When the Planner reports a coherent package, run and record the cycle validator before `planning_review`, then commission one fresh, independent Reviewer. Supply the complete literal Cycle Identity Handoff, repository instructions, exact dynamic artifact paths, and Planner evidence; do not abbreviate source IDs or supply a desired verdict. Require the Reviewer to report every artifact read and the validator command/result; an external artifact read invalidates its result.
 
 Route `corrections required` findings to the Planner as a bounded `planning_correction`, then return the delta to the same Reviewer for a focused delta re-review. Commission a fresh full planning review only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity. Keep `conditionally verified` outside the approval gate and resolve or report its missing checks. Track retries by underlying condition; after the third unsuccessful correction/review cycle for the same condition, escalate with evidence, attempted resolutions, impact, and the user decision required.
 

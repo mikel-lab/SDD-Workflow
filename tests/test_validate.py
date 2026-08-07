@@ -254,6 +254,45 @@ class ValidateDistributionTests(unittest.TestCase):
         skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("must not dispatch `sdd-orchestrator`", skill)
 
+    def test_wait_timeout_does_not_replace_an_active_role_owner(self) -> None:
+        # Regression: timed-out waits caused active Planners and Reviewers to be
+        # interrupted and replaced, duplicating work and losing their results.
+        orchestrator = (
+            self.root / "skills/sdd-workflow/references/orchestrator.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("## Delegated Action Monitoring", orchestrator)
+        self.assertIn("timeout is not a failure", orchestrator)
+        self.assertIn("Never interrupt, close, or replace", orchestrator)
+        self.assertIn("one active owner", orchestrator)
+        self.assertIn("Do not count wait timeouts", orchestrator)
+        self.assertIn("must not perform Planner or Reviewer work as a fallback", orchestrator)
+
+    def test_cycle_identity_handoff_is_complete_and_literal(self) -> None:
+        # Regression: manually abbreviated Figma source IDs and an absolute
+        # artifact directory blocked otherwise valid Reviewer actions.
+        contracts = (
+            self.root / "skills/sdd-workflow/references/contracts.md"
+        ).read_text(encoding="utf-8")
+        handoff = contracts.split("## Cycle Identity Handoff", 1)[1].split(
+            "## Orchestrator Status", 1
+        )[0]
+
+        for field in (
+            "manifest",
+            "cycle_id",
+            "workspace_root",
+            "speckit_root",
+            "primary_source",
+            "source_ids",
+            "artifact_directory",
+            "identity_mode",
+            "cycle_validation_command",
+        ):
+            self.assertIn(f"{field}:", handoff)
+        self.assertIn("literal", handoff)
+        self.assertIn("must not be abbreviated", handoff)
+
     def test_retired_orchestrator_agent_is_not_distributed(self) -> None:
         # Break caught: root-chat coordination still ships a competing managed
         # sdd-orchestrator agent.
@@ -489,7 +528,9 @@ class CycleValidatorTests(unittest.TestCase):
     def validate(self, *extra_args: str) -> subprocess.CompletedProcess[str]:
         return self.run_validator(*self.external_identity_args("--new-cycle", *extra_args))
 
-    def run_validator(self, *validator_args: str) -> subprocess.CompletedProcess[str]:
+    def run_validator(
+        self, *validator_args: str, expected_source: str = "TEAM-123"
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 PYTHON,
@@ -499,7 +540,7 @@ class CycleValidatorTests(unittest.TestCase):
                 "--expected-workspace",
                 str(self.workspace),
                 "--expected-source",
-                "TEAM-123",
+                expected_source,
                 *validator_args,
             ],
             text=True,
@@ -519,6 +560,14 @@ class CycleValidatorTests(unittest.TestCase):
             "TEAM-123",
             *extra_args,
         ]
+
+    def external_identity_args_for_source(
+        self, source_id: str, *extra_args: str
+    ) -> list[str]:
+        args = self.external_identity_args(*extra_args)
+        source_index = args.index("--expected-source-id") + 1
+        args[source_index] = source_id
+        return args
 
     def validate_with_external_identity(
         self, *extra_args: str
@@ -668,6 +717,38 @@ class CycleValidatorTests(unittest.TestCase):
         result = self.validate()
         self.assertEqual(result.returncode, 1)
         self.assertIn("unauthorized Jira", result.stderr)
+
+    def test_authorized_jira_url_and_speckit_ids_pass(self) -> None:
+        # Regression: PVAPP-807, FR-001, and SC-001 were all rejected as foreign Jira keys.
+        jira_url = "https://ports-tech.atlassian.net/browse/PVAPP-807"
+        self.manifest["primary_source"] = jira_url
+        self.manifest["source_ids"] = [jira_url]
+        self.write_manifest()
+        (self.artifact_directory / "spec.md").write_text(
+            "Ticket PVAPP-807\nRequirement FR-001\nSuccess SC-001\n",
+            encoding="utf-8",
+        )
+        result = self.run_validator(
+            *self.external_identity_args_for_source(jira_url, "--new-cycle"),
+            expected_source=jira_url,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_other_ticket_from_authorized_jira_project_fails(self) -> None:
+        # Regression: isolation must still reject a different ticket in the same project.
+        jira_url = "https://ports-tech.atlassian.net/browse/PVAPP-807"
+        self.manifest["primary_source"] = jira_url
+        self.manifest["source_ids"] = [jira_url]
+        self.write_manifest()
+        (self.artifact_directory / "spec.md").write_text(
+            "Copied from PVAPP-806\n", encoding="utf-8"
+        )
+        result = self.run_validator(
+            *self.external_identity_args_for_source(jira_url, "--new-cycle"),
+            expected_source=jira_url,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("unauthorized Jira key", result.stderr)
 
     def test_tasks_must_start_at_t001(self) -> None:
         # Break caught: a cycle inherits task numbering from another package.

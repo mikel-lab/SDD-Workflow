@@ -2,6 +2,24 @@
 
 Use these ordered recipes for every role handoff. Keep each field present, concise, and evidence-based. Use `none` when a field has no entries so the shape remains explicit.
 
+## Cycle Identity Handoff
+
+Create this block once from root-owned values and reuse it byte for byte for every Planner and Reviewer action. Values are literal and must not be abbreviated, summarized, converted to labels, or reconstructed from the manifest. Keep `artifact_directory` relative to `speckit_root`.
+
+```text
+manifest: <exact absolute sdd-cycle.json path, or pending before first creation>
+cycle_id: <exact root-generated identity>
+workspace_root: <exact absolute workspace root>
+speckit_root: <exact absolute SpecKit root>
+primary_source: <exact primary source identifier>
+source_ids: <complete ordered list of exact literal source identifiers>
+artifact_directory: <exact directory relative to speckit_root>
+identity_mode: <--new-cycle | --expected-continuation-of exact-cycle-id>
+cycle_validation_command: <exact command using every value above and each literal --expected-source-id>
+```
+
+The block must not be abbreviated in a retry or follow-up. Add action-specific scope and evidence after it; do not repeat the skill body or role instructions in the handoff.
+
 ## Orchestrator Status
 
 ```text
