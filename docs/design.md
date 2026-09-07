@@ -22,7 +22,7 @@
 
 1. El chat raíz es el Orquestador del ciclo. “Orquestador” pasa a ser un rol del chat, no un agente despachable.
 2. El chat coordina, conserva el estado, valida límites, aplica gates y habla con el usuario; no planifica en profundidad, revisa su propio trabajo ni implementa código.
-3. Planner y Reviewer conservan GPT-5.6 Sol con esfuerzo high. Main, High y Simple conservan sus modelos y esfuerzos actuales.
+3. Planner y Reviewer usan GPT-6 Astra con esfuerzo low. Main, High y Simple conservan sus modelos y esfuerzos actuales.
 4. Sol medium será la recomendación operativa para el chat coordinador, pero la skill no fingirá que puede imponer el modelo de la sesión.
 5. Cada ciclo nuevo crea un directorio SpecKit nuevo y explícito. La feature activa anterior nunca decide el destino.
 6. Ningún artefacto SDD histórico es fuente de verdad para un ciclo nuevo.
@@ -35,11 +35,11 @@
 El conjunto canónico se reduce a cinco agentes:
 
 ```text
-sdd-planner            GPT-5.6 Sol / high
+sdd-planner            GPT-6 Astra / low
 sdd-implementer-main   GPT-5.6 Terra / medium
 sdd-implementer-high   GPT-5.6 Terra / high
 sdd-implementer-simple GPT-5.6 Terra / low
-sdd-reviewer           GPT-5.6 Sol / high
+sdd-reviewer           GPT-6 Astra / low
 ```
 
 `sdd-orchestrator.toml` se elimina del repositorio y de la instalación global. La referencia metodológica del Orquestador permanece dentro de la skill, dirigida expresamente al chat raíz.

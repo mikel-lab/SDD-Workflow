@@ -19,7 +19,7 @@
 - Reuse requires an explicit continuation request plus exact workspace and primary-source identity.
 - The root chat is the Orchestrator role and must not dispatch `sdd-orchestrator`.
 - Preserve the exact `Approved, implement.` gate, baseline invalidation, Reviewer read-only behavior, Main/High exclusivity, Luna authorization, and the aggregate simple-lane ceiling.
-- Keep Planner and Reviewer on GPT-5.6 Sol/high; preserve Main, High, and Simple on Terra medium/high/low.
+- Use GPT-6 Astra/low for Planner and Reviewer; preserve Main, High, and Simple on Terra medium/high/low.
 - Final source inventory: exactly 24 files—remove one Orchestrator TOML and add one runtime validator.
 - Store evidence only below `/tmp/codex-sdd-cycle-isolation-evidence`.
 - Install globally only after tests and independent review pass; back up the retired installed Orchestrator.
