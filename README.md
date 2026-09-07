@@ -16,6 +16,9 @@ the workflow rules and role definitions.
 | `sdd-implementer-simple` | Delivers small, isolated, dependency-ready work. |
 | `sdd-reviewer` | Independently reviews plans, deliveries, convergence, and final output. |
 
+Planner and Reviewer use `gpt-6-astra` with `low` reasoning effort. Their
+canonical settings are enforced by the distribution validator.
+
 The root chat is the sole coordination and user-contact authority; it performs
 the Orchestrator role and does not dispatch a second Orchestrator agent. Use
 `gpt-5.6-sol` at medium reasoning effort for that root-chat coordination when
