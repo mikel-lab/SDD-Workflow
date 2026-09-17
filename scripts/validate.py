@@ -44,6 +44,7 @@ EXPECTED_FILES = (
     Path("scripts/validate.py"),
     Path("skills/sdd-workflow/scripts/validate_cycle.py"),
     Path("tests/test_validate.py"),
+    Path("tests/test_delegation_policy.py"),
     Path("tests/test_install.sh"),
 )
 USER_PATH = re.compile(r"/(?:Users|home)/[^/\\\s]+")

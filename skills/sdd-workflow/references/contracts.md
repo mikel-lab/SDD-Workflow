@@ -27,11 +27,33 @@ state: <current normative lifecycle state>
 transition: <proposed next state and triggering condition>
 sources: <source, access method, evidence or limitation>
 routing: <role or lane, task boundary, and evidence for the route>
+delegation: <native agent ID and reference to its latest Delegation Record, or none>
 gates: <planning review, frozen artifact set, exact approval, and validity>
 blockers: <condition, evidence, impact, owner, and required resolution>
 risks: <known risk, likelihood or impact, and mitigation>
 next action: <single accountable action and required gate>
 ```
+
+## Delegation Record
+
+Keep one compact record per native agent in the root chat, linked from Orchestrator Status. Fill requested values before spawning and update observed values only when runtime evidence becomes available. Reuse its agent ID on follow-ups rather than repeating the record. This is not a new governed artifact and must not change the manifest, approved baseline, or Cycle Identity Handoff. Do not create another agent or review to gather this metadata.
+
+```text
+agent_id: <runtime agent identifier; pending before spawn; not verified if unavailable>
+requested_role: <exact canonical native SDD role>
+requested_model: <model from the selected canonical TOML>
+requested_effort: <effort from the selected canonical TOML>
+selection_evidence: <supported tool/profile arguments actually used, or blocking limitation>
+context_policy: <none | recent | all | not verified>
+context_argument: <exact supported argument and value used, or not verified>
+context_reason: <self-contained brief, or task-specific need and boundary check for inherited history>
+effective_model: <runtime-observed value, or not verified>
+effective_effort: <runtime-observed value, or not verified>
+runtime_evidence: <agent-linked metadata source and observed values, or not verified>
+configuration_status: <verified | not verified | mismatch | blocked>
+```
+
+`verified` requires matching runtime evidence for the effective model and effort and a supported context selection. `not verified` identifies missing observability, not permission to invent evidence. A confirmed contrary value takes `mismatch` precedence even when other values are unavailable; `blocked` records inability to apply the required profile or maintain the source boundary before delegation. These are configuration diagnostics, not Reviewer verdicts or lifecycle states; they neither grant nor replace any approval. Keep the actual blocker in Orchestrator Status when one exists. Task-specific briefs and every required literal identity field remain mandatory even when history is inherited.
 
 ## Planner Result
 
