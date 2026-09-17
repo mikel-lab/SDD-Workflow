@@ -6,6 +6,39 @@ The invoking root chat is the sole coordination, state-transition, and gate auth
 
 Report every handoff with the Orchestrator Status recipe in [Contracts](contracts.md). Apply [Lifecycle and Gates](lifecycle-and-gates.md) without skipping states.
 
+## Agent Spawn Policy
+
+Apply this policy before creating a native Planner, implementer, or Reviewer. Record the decision with the Delegation Record in [Contracts](contracts.md#delegation-record). Luna remains governed by [Luna Lane](luna-lane.md), not by native spawn arguments.
+
+### Profile selection
+
+Select the role from the actual subtask and the existing routing rules, then use its canonical TOML model and effort through the exposed role-selection control. Do not inherit maximum effort merely because the parent uses it. A role or model name written in the task prompt is not a configuration change. Do not override the canonical profiles, Main/High exclusion, or concurrency ceiling through a generic instruction to choose freely.
+
+Inspect the exposed tool schema and available role configuration. If the runtime cannot apply the required profile, report an infrastructure blocker before delegating; do not silently relabel a generic agent. Where supported, record the actual role-selection argument and any explicit model/effort arguments. Use only controls the current tool supports.
+
+### Context selection
+
+Self-contained assignments start without parent history and receive one complete, bounded brief. Select the explicit argument supported by the exposed tool schema:
+
+| Supported interface | No parent history |
+| --- | --- |
+| `fork_context` | `fork_context=false` |
+| `fork_turns` | `fork_turns="none"` |
+
+Never send both argument families. Do not rely on omitted-argument defaults. These are spawn arguments, not agent TOML settings. If the runtime cannot control history, record the limitation as `not verified`; do not claim isolation. If cycle isolation cannot be maintained, stop the affected delegation under the existing source-boundary rules.
+
+When the task demonstrably needs earlier exchanges, first move the necessary facts into the brief. When supported and still necessary, select only the needed recent turns with `fork_turns` as a positive integer string. Full history requires a recorded task-specific reason and a boundary check. Do not inherit unrelated cycles or out-of-scope governed artifacts. Neither partial nor full inheritance substitutes for the required handoff.
+
+The brief contains the objective, applicable criteria, explicit user decisions, exact source and artifact references, owned and prohibited paths, dependencies, base state, checks, and required result contract. Preserve the complete Cycle Identity Handoff byte for byte for Planner and Reviewer actions. Preserve mandatory skill and reference reads, source access limits, and all approval boundaries; removing conversation history does not remove those instructions or grant new permissions. Reference files rather than pasting their entire contents, and include relevant decisions that exist only in the conversation.
+
+Use a neutral review brief: sources, criteria, baseline, changes, and available evidence, without a desired verdict or inherited advocacy. Keep the same Reviewer for a focused delta re-review when the lifecycle requires it. Context minimization is not a reason to replace an active owner or restart a valid correction.
+
+### Requested versus observed configuration
+
+Record requested configuration before spawning, then add effective model and effort only from available runtime metadata tied to that agent. A TOML declaration, a successful role-selection request, or the agent's self-report is not runtime proof. Mark unavailable effective values and their evidence `not verified`. Missing runtime metadata alone does not add an approval gate when the required profile was selected through a supported control and no contrary evidence exists.
+
+On a confirmed mismatch, stop the affected assignment, preserve evidence and workspace changes, and report the infrastructure blocker. Do not silently accept a different profile or create repeated replacement agents. Capture the evidence when it is exposed by the spawn result, normal status, or terminal result; do not poll or message agents merely to populate metadata.
+
 ## Delegated Action Monitoring
 
 Maintain one active owner for each Planner, implementer, or Reviewer action. A wait timeout is not a failure: it means only that no terminal result arrived during that wait. Do not count wait timeouts as correction attempts, review attempts, or evidence that an agent is stalled.
@@ -13,6 +46,8 @@ Maintain one active owner for each Planner, implementer, or Reviewer action. A w
 Never interrupt, close, or replace an active owner merely because a wait timed out, an action is taking longer than expected, or no final contract has arrived yet. Continue bounded waits and user-visible status updates without restarting the work. Send at most one non-interrupting status request when the agent exposes no progress signal; do not send repeated instructions that change or duplicate its assignment.
 
 Replace an owner only after an explicit terminal failure, an explicit blocker that requires a new action, a confirmed boundary violation, user cancellation, or completed output that the lifecycle routes to another action. Close a completed owner only after capturing its final contract. The root chat must not perform Planner or Reviewer work as a fallback for latency or tool inconvenience; if a role is genuinely unavailable, report the infrastructure blocker without advancing its gate.
+
+User-facing status updates do not require messages to the active agent. Do not send routine progress messages or repeat the brief. Prefer non-interrupting follow-ups for new relevant information; interrupt only when a cancellation, changed requirement, or confirmed safety or scope violation genuinely requires the current action to stop.
 
 ## Intake and Cycle Authority
 

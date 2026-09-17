@@ -27,6 +27,31 @@ available.
 The implementation gate opens only after an independent planning review returns
 `approved` and the user replies exactly `Approved, implement.`.
 
+## Efficient delegation
+
+The [spawn policy](skills/sdd-workflow/references/orchestrator.md#agent-spawn-policy)
+keeps the existing canonical models and efforts, approvals, role boundaries,
+and concurrency limits. Select the actual configured role through supported
+runtime controls, not merely by naming a model in the task prompt.
+
+Self-contained native assignments start with a complete brief and no parent
+conversation history. Inspect the available tool schema: use
+`fork_context=false` where supported or `fork_turns="none"` on that interface,
+never both. Inherit history only for a recorded task-specific need within the
+cycle boundary. Keep the same Reviewer for bounded delta corrections, and do
+not interrupt active agents to request routine progress.
+
+A compact [Delegation Record](skills/sdd-workflow/references/contracts.md#delegation-record)
+in the root chat separates requested configuration from runtime-observed model
+and effort. Missing metadata is `not verified`, not guessed and not a new
+approval gate. Unsupported required profiles and confirmed mismatches are
+reported rather than silently replaced. The record does not create a new
+planning artifact. Luna retains its separate delivery and integration rules.
+
+These are workflow instructions, not a runtime interceptor. The regression
+tests check their presence and contracts, not a live Codex execution or usage
+savings. Verify actual selection and context behavior in the installed runtime.
+
 ## Requirements
 
 - Bash
@@ -65,7 +90,7 @@ Run from the repository root:
 python3 scripts/validate.py
 ```
 
-The validator checks the exact 24-file distribution, all five canonical agent TOMLs,
+The validator checks the exact 25-file distribution, all five canonical agent TOMLs,
 the skill frontmatter, eight direct skill references, full-tree portability,
 and the official skill validator when it can be resolved.
 
@@ -111,7 +136,7 @@ tests/                  Validator and installer behavioral tests
 ## Tests
 
 ```bash
-python3 -m unittest -v tests/test_validate.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 bash tests/test_install.sh
 ```
 
