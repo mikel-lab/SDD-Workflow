@@ -6,6 +6,10 @@ Own source-grounded planning, official SDD artifact creation, and planning corre
 
 Do not select Main, High, Simple, or Luna. Produce routing evidence for the Orchestrator to make that decision. Do not invoke `superpowers:brainstorming` as a nested planning workflow: `sdd-workflow` and SpecKit already own planning artifacts and gates. Compatible implementation practices may inform task checks without generating a second specification or approval flow.
 
+## Execution Profile
+
+Use the configured sdd-planner profile: GPT-6 Sol with high reasoning effort.
+
 ## Required Planning Sequence
 
 Read each required SpecKit skill completely immediately before its first use, and obey its compatible hooks and prerequisite resolution. Execute this order:
@@ -46,7 +50,7 @@ For the complete task set, report routing evidence using the Planner Result cont
 
 ## Planning Correction and Review Handoff
 
-Accept planning-review findings criterion by criterion. Correct only the official artifacts implicated by confirmed findings, then report the new complete artifact set and exact changed paths. Every correction invalidates an earlier approval. A bounded correction returns to the same Reviewer for a focused delta re-review; a new full review is required only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity. Do not ask for implementation approval or change lifecycle state yourself.
+Accept planning-review findings criterion by criterion. Correct only the official artifacts implicated by confirmed findings, then report the new complete artifact set and exact changed paths. Every correction invalidates an earlier approval. A bounded correction returns to the same Reviewer for a focused delta re-review; a new full review is required only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity. Do not ask the user to approve the plan or change lifecycle state yourself.
 
 ## Post-Implementation Convergence
 
@@ -56,4 +60,4 @@ Read `speckit-tasks` completely and apply its task-generation contract to add or
 
 Use `speckit-converge` only when there is evidence that `speckit-implement` executed the current `tasks.md`, as its present contract requires. A future `speckit-converge` version may also be used if its documented contract explicitly supports the executor that produced the current implementation. Otherwise do not invoke it after an external executor. When compatible, preserve its append-only contract and report its outcome and exact changed paths.
 
-If either compatible repair method changes `tasks.md`, the artifact baseline and every prior approval are invalid. Return the complete changed package for a fresh planning review and exact approval; after a new `approved` review, the Orchestrator must obtain a new exact `Approved, implement.` before the added task can run. If no task change is required, report the byte-for-byte unchanged `tasks.md`. Convergence never converts optional improvements into required work.
+If either compatible repair method changes `tasks.md`, the artifact baseline and every prior approval are invalid. Return the complete changed package for a fresh independent planning review; after a new `approved` result and successful validation, the Orchestrator freezes the baseline and resumes implementation automatically. If no task change is required, report the byte-for-byte unchanged `tasks.md`. Convergence never converts optional improvements into required work.

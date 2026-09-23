@@ -10,6 +10,10 @@ Return the Reviewer Result recipe from [Contracts](contracts.md) with exactly on
 
 Before reviewing or reconciling a cycle, run `validate_cycle.py` with the root-supplied manifest, workspace, cycle ID, SpecKit root, primary source, complete repeatable source-ID set, artifact directory, and exactly one supplied new-cycle or continuation identity. Do not derive or relax those expectations from the manifest.
 
+## Execution Profile
+
+Use the configured sdd-reviewer profile: GPT-6 Sol with high reasoning effort.
+
 ## Planning Review
 
 Review the complete dynamic artifact set and its exact baseline identity against the authoritative sources and repository evidence. Verify criterion by criterion:
@@ -29,7 +33,7 @@ Review a native delivery only when the Orchestrator identifies a high-risk batch
 
 ## Luna Reviews
 
-Before integration, review the isolated Luna delivery against its authorized brief and base state. Confirm isolation, exact changed paths, required evidence, and delivery-commit identity, and verify that no integration has occurred. A pre-integration `approved` result only makes the delivery eligible for the separate integration gate; it does not authorize integration.
+Before integration, review the isolated Luna delivery against its authorized brief and base state. Confirm isolation, exact changed paths, required evidence, and delivery-commit identity, and verify that no integration has occurred. A pre-integration `approved` result authorizes Main to integrate only the reviewed delivery when the user explicitly selected the visible Luna lane and the target baseline is unchanged; it does not approve the integrated result.
 
 After Main integrates an approved Luna delivery, review the integrated repository state again. Verify that the approved commit's intended delta was preserved, integration introduced no extra changes or conflicts, checks still support the criteria, and current paths remain within scope. Never reuse the pre-integration verdict as the post-integration verdict.
 
@@ -43,10 +47,10 @@ Classify every confirmed missing approved-scope obligation by task coverage:
 - If the required work is absent from `tasks.md`, report the source criterion, evidence, affected paths, and why existing tasks do not cover it; route the gap to the Planner for a bounded `speckit-tasks` contract repair. Record whether evidence proves that `speckit-implement` executed the current `tasks.md`, because only that proof—or a future `speckit-converge` contract that explicitly supports the actual executor—makes `speckit-converge` compatible.
 - If the candidate is an optional improvement or exceeds the approved source scope, report it only as out-of-scope information; do not route it to convergence.
 
-Do not run `speckit-tasks` or `speckit-converge` and do not append tasks. When the Planner changes `tasks.md`, treat the prior gate as invalid: require a fresh planning review of the changed package and a new exact `Approved, implement.` before the new work proceeds. Do not schedule an identical whole-package review afterward.
+Do not run `speckit-tasks` or `speckit-converge` and do not append tasks. When the Planner changes `tasks.md`, treat the prior review as invalid and require a fresh planning review of the changed package. After a new `approved` result and successful validation, implementation proceeds automatically. Do not schedule an identical whole-package review afterward.
 
 ## Final Integrated Review
 
-In the same final-review action, review the complete integrated result after batch corrections and Luna post-integration reviews are resolved. Recheck every approved criterion against sources, current artifacts, code, tests, exact changed paths, and reproducible verification results. Confirm that the artifact approval and implementation authorization are still valid and that no required work remains.
+In the same final-review action, review the complete integrated result after batch corrections and Luna post-integration reviews are resolved. Recheck every approved criterion against sources, current artifacts, code, tests, exact changed paths, and reproducible verification results. Confirm that the independent planning approval and frozen artifact baseline remain valid and that no required work remains.
 
 Return `approved` only for a fully evidenced integrated result with no correction finding or conditioned check. Use `corrections required` for confirmed defects or omissions and `conditionally verified` for incomplete environmental verification. Neither a partial batch approval nor a conditioned result authorizes `complete`.

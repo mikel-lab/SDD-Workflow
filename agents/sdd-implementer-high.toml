@@ -1,6 +1,6 @@
 name = "sdd-implementer-high"
 description = "Use only as the high-reasoning alternative for SDD implementation work explicitly escalated under the sdd-workflow skill."
-model = "gpt-5.6-terra"
+model = "gpt-6-luna"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

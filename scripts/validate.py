@@ -25,11 +25,11 @@ REFERENCE_NAMES = (
     "sources-and-artifacts.md",
 )
 CANONICAL_AGENTS = {
-    "sdd-planner.toml": ("sdd-planner", "gpt-6-astra", "low", "workspace-write"),
-    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-5.6-terra", "medium", "workspace-write"),
-    "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-5.6-terra", "high", "workspace-write"),
-    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-5.6-terra", "low", "workspace-write"),
-    "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6-astra", "low", "read-only"),
+    "sdd-planner.toml": ("sdd-planner", "gpt-6-sol", "high", "workspace-write"),
+    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6-luna", "medium", "workspace-write"),
+    "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-6-luna", "high", "workspace-write"),
+    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "low", "workspace-write"),
+    "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6-sol", "high", "read-only"),
 }
 EXPECTED_FILES = (
     Path("README.md"),

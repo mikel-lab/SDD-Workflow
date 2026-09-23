@@ -2,15 +2,23 @@
 
 ## Common Execution Contract
 
-Accept an assignment only in `implementation` or `implementation_correction` after the Orchestrator confirms that the approved artifact baseline and exact implementation authorization remain valid. Require a complete Implementation Brief from [Contracts](contracts.md). Stop before writing when the brief omits the approved objective or criteria, exclusive owned paths, prohibited paths, satisfied dependencies, base state, focused checks, or delivery contract.
+Accept an assignment only in `implementation` or `implementation_correction` after the Orchestrator confirms that the independent planning review, successful cycle validation, and frozen artifact baseline remain valid. Require a complete Implementation Brief from [Contracts](contracts.md). Stop before writing when the brief omits the approved objective or criteria, exclusive owned paths, prohibited paths, satisfied dependencies, base state, focused checks, or delivery contract.
 
 Before editing, inspect the assigned paths and workspace state. Preserve user-owned and concurrent changes, adapt to compatible visible edits, and never reset, revert, overwrite, or claim unrelated work. Write only within the exclusive owned boundary; do not modify a prohibited, overlapping, unexpectedly dirty, or unassigned path.
 
-Implement the smallest coherent change that satisfies the assigned approved criteria. Main owns a coherent dependency-ready batch by default, not one agent per task entry. Use Simple or Luna only when isolation yields net savings; High replaces Main. Do not reinterpret acceptance criteria, redesign the plan, add optional improvements, broaden a correction, or silently choose between materially different behaviors. When the approved sources conflict, a dependency is incomplete, ownership overlaps, or hidden coupling would require work beyond the brief, stop the affected assignment and return the evidence to the Orchestrator before expanding scope.
+Implement the smallest coherent change that satisfies the assigned approved criteria. Main owns a coherent dependency-ready batch by default, not one agent per task entry. Use native Simple by default for standalone low-complexity, isolated work; parallel-safe classification is required only when it runs concurrently with another assignment. A visible Luna task is optional and requires a concrete benefit over native Simple. High replaces Main. Do not reinterpret acceptance criteria, redesign the plan, add optional improvements, broaden a correction, or silently choose between materially different behaviors. When the approved sources conflict, a dependency is incomplete, ownership overlaps, or hidden coupling would require work beyond the brief, stop the affected assignment and return the evidence to the Orchestrator before expanding scope.
 
 Run the focused checks required by the brief and any repository policy. Record each exact command or inspection and its observed result, including failures or environmental limits. Return the Implementer Result recipe from [Contracts](contracts.md), listing every exact changed path, criterion-to-behavior evidence, blockers, and residual risk. Never claim completion from an old, partial, or inferred check.
 
 Do not create or switch branches, commit, merge, rebase, or push unless the current assignment explicitly requires that action and current user authority covers it. Luna delivery and integration use the separate rules in [Luna Lane](luna-lane.md).
+
+## Agent Profiles
+
+| Route | Configured profile | Model | Reasoning effort |
+| --- | --- | --- | --- |
+| Main | sdd-implementer-main | GPT-6 Luna (gpt-6-luna) | medium |
+| High | sdd-implementer-high | GPT-6 Luna (gpt-6-luna) | high |
+| Simple | sdd-implementer-simple | GPT-6 Luna (gpt-6-luna) | low |
 
 ## Routing Decision
 
@@ -20,7 +28,7 @@ Apply these routes only after dependencies and path ownership are resolved:
 | --- | --- |
 | Main | Use by default for bounded non-trivial work, integration across components, native Simple corrections, fallback after a second rejected Luna delivery, and gated integration of an approved Luna delivery. Route every uncertain complexity or isolation classification here. |
 | High | Replace Main when evidence shows transversal reasoning, difficult debugging, a delicate migration, concurrency, persistence, a difficult contract, or repeated reasoning failure that requires higher effort. Record the triggering evidence. |
-| Simple | Use only when every predicate is true: low complexity, isolated scope, satisfied dependencies, exclusive non-overlapping path ownership, and independent verifiability. Assign one bounded task and its focused checks. |
+| Simple | Use when all predicates are true: low complexity, isolated scope, satisfied dependencies, exclusive non-overlapping path ownership, and independent verifiability. Assign one bounded task and its focused checks. A standalone Simple assignment does not need to be parallel-safe. |
 
 Main and High are mutually exclusive for the entire workflow: never run them concurrently, including on different batches. High replaces Main; it does not supplement Main. When escalation changes the principal route, stop the prior principal assignment and hand off its exact state before the replacement begins.
 

@@ -1,8 +1,8 @@
 # SDD Workflow
 
 `sdd-workflow` is a portable Codex skill for a governed
-Specification-Driven Development lifecycle. The invoking root chat coordinates planning, an
-independent review, an explicit implementation gate, bounded delivery, and
+Specification-Driven Development lifecycle. The invoking root chat coordinates planning,
+independent review, validation-controlled implementation, bounded delivery, and
 final verification. SpecKit owns the planning artifacts; this package owns
 the workflow rules and role definitions.
 
@@ -16,22 +16,24 @@ the workflow rules and role definitions.
 | `sdd-implementer-simple` | Delivers small, isolated, dependency-ready work. |
 | `sdd-reviewer` | Independently reviews plans, deliveries, convergence, and final output. |
 
-Planner and Reviewer use `gpt-6-astra` with `low` reasoning effort. Their
-canonical settings are enforced by the distribution validator.
+Planner and Reviewer use `gpt-6-sol` with `high` reasoning effort. Main, High, and
+Simple use `gpt-6-luna` with `medium`, `high`, and `low` effort respectively.
+The distribution validator enforces these canonical settings.
 
 The root chat is the sole coordination and user-contact authority; it performs
 the Orchestrator role and does not dispatch a second Orchestrator agent. Use
 `gpt-5.6-sol` at medium reasoning effort for that root-chat coordination when
 available.
 
-The implementation gate opens only after an independent planning review returns
-`approved` and the user replies exactly `Approved, implement.`.
+Implementation starts automatically after an independent planning review returns
+`approved`, cycle validation passes, and the reviewed artifact baseline is frozen.
+The workflow does not ask the user to approve the plan.
 
 ## Efficient delegation
 
 The [spawn policy](skills/sdd-workflow/references/orchestrator.md#agent-spawn-policy)
-keeps the existing canonical models and efforts, approvals, role boundaries,
-and concurrency limits. Select the actual configured role through supported
+keeps the canonical role profiles, review boundaries, role ownership, and
+concurrency limits. Select the actual configured role through supported
 runtime controls, not merely by naming a model in the task prompt.
 
 Self-contained native assignments start with a complete brief and no parent
@@ -46,7 +48,9 @@ in the root chat separates requested configuration from runtime-observed model
 and effort. Missing metadata is `not verified`, not guessed and not a new
 approval gate. Unsupported required profiles and confirmed mismatches are
 reported rather than silently replaced. The record does not create a new
-planning artifact. Luna retains its separate delivery and integration rules.
+planning artifact. Visible Luna is used only when the current request explicitly
+selects it; an approved pre-integration review and unchanged target baseline let
+Main integrate automatically, followed by an independent post-integration review.
 
 These are workflow instructions, not a runtime interceptor. The regression
 tests check their presence and contracts, not a live Codex execution or usage
@@ -143,12 +147,6 @@ bash tests/test_install.sh
 Installer tests always use a temporary `CODEX_HOME` and do not modify an active
 Codex installation.
 
-## Add a remote later
+## Repository
 
-The repository is intentionally usable without a remote. When ready to publish
-it, create an empty remote, then add it and push the current branch:
-
-```bash
-git remote add origin <remote-url>
-git push -u origin <branch-name>
-```
+The canonical repository is [mikel-lab/SDD-Workflow](https://github.com/mikel-lab/SDD-Workflow).

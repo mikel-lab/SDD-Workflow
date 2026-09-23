@@ -28,7 +28,7 @@ transition: <proposed next state and triggering condition>
 sources: <source, access method, evidence or limitation>
 routing: <role or lane, task boundary, and evidence for the route>
 delegation: <native agent ID and reference to its latest Delegation Record, or none>
-gates: <planning review, frozen artifact set, exact approval, and validity>
+gates: <independent planning review, successful cycle validation, frozen artifact baseline, and validity>
 blockers: <condition, evidence, impact, owner, and required resolution>
 risks: <known risk, likelihood or impact, and mitigation>
 next action: <single accountable action and required gate>

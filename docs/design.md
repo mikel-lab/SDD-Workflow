@@ -2,11 +2,11 @@
 
 ## Estado
 
-- Fecha: 2026-08-06
+- Fecha: 2026-08-06; refinamiento vigente: 2026-09-23
 - Alcance: evolución global y reutilizable de `sdd-workflow`
 - Estado del diseño: aprobado por el usuario
 - Implementación: verificada e instalada globalmente
-- Evidencia final: 57 pruebas Python, pruebas del instalador, validadores de distribución y skill, sintaxis Bash, paridad byte a byte y smoke test del runtime instalado.
+- Evidencia de la implementación original (2026-08-06): 57 pruebas Python, pruebas del instalador, validadores de distribución y skill, sintaxis Bash, paridad byte a byte y smoke test del runtime instalado. El refinamiento de 2026-09-23 se integra por separado.
 - Backup de migración: `$CODEX_HOME/backups/sdd-workflow-20260806T131501Z-48525`
 - Motivo: una ejecución real permitió que el chat y un subagente compartieran la coordinación y reutilizó un paquete SpecKit de otra tarea, arrastrando tareas y revisiones históricas.
 
@@ -16,13 +16,13 @@
 2. Eliminar el agente nativo `sdd-orchestrator` y la doble capa de control.
 3. Crear un paquete SpecKit aislado para cada ciclo nuevo.
 4. Impedir que Planner y Reviewer lean o incorporen artefactos SDD de tareas anteriores.
-5. Reducir agentes, revisiones repetidas y consumo sin debilitar los gates de planificación, autorización y verificación final.
+5. Reducir agentes, revisiones y preguntas rutinarias al usuario conservando la revisión independiente, validación, baseline congelado y verificación final.
 
 ## Principios normativos
 
 1. El chat raíz es el Orquestador del ciclo. “Orquestador” pasa a ser un rol del chat, no un agente despachable.
 2. El chat coordina, conserva el estado, valida límites, aplica gates y habla con el usuario; no planifica en profundidad, revisa su propio trabajo ni implementa código.
-3. Planner y Reviewer usan GPT-6 Astra con esfuerzo low. Main, High y Simple conservan sus modelos y esfuerzos actuales.
+3. Planner y Reviewer usan GPT-6 Sol con esfuerzo high. Main, High y Simple usan GPT-6 Luna con esfuerzos medium, high y low, respectivamente.
 4. Sol medium será la recomendación operativa para el chat coordinador, pero la skill no fingirá que puede imponer el modelo de la sesión.
 5. Cada ciclo nuevo crea un directorio SpecKit nuevo y explícito. La feature activa anterior nunca decide el destino.
 6. Ningún artefacto SDD histórico es fuente de verdad para un ciclo nuevo.
@@ -56,9 +56,9 @@ Al invocar `sdd-workflow`, el chat debe:
 - validar lecturas y escrituras de artefactos;
 - solicitar la revisión de planificación;
 - congelar el baseline aprobado;
-- aplicar el gate exacto `Approved, implement.`;
+- iniciar implementación automáticamente después de una revisión independiente `approved`, la validación exitosa del ciclo y el congelado del baseline;
 - asignar implementación y revisiones según el presupuesto operativo;
-- informar al usuario al cambiar de fase, ante un bloqueo o al terminar.
+- informar al usuario si surge un bloqueo esencial que no puede resolver con la evidencia disponible, o al terminar; no pedir confirmación del plan ni de elecciones rutinarias.
 
 Si no puede invocar un rol obligatorio, debe detener el ciclo. No puede asumir el trabajo del Planner, Reviewer o implementador para ahorrar una llamada.
 
@@ -195,7 +195,7 @@ El camino normal será:
 Chat raíz / Orquestador
 → Planner
 → Reviewer de planificación
-→ gate Approved, implement.
+→ revisión `approved` + validación del ciclo + baseline congelado
 → Main
 → Reviewer final con speckit-analyze
 → complete
@@ -212,7 +212,7 @@ Chat raíz / Orquestador
 ### Implementación
 
 - Main es el ejecutor principal por defecto y recibe lotes coherentes, no una microtarea por agente.
-- Simple o Luna se usan solo cuando la separación produce un ahorro neto y el trabajo es inequívocamente aislado.
+- Simple nativo es la ruta por defecto para trabajo independiente, simple y aislado; solo exige `parallel-safe` cuando coincide con otra asignación. Una tarea visible de Luna requiere petición explícita del usuario y una ventaja concreta frente a Simple.
 - High sustituye a Main ante complejidad demostrada; no trabaja como segundo implementador principal.
 - Cada implementador verifica su trabajo, pero no se crea un Reviewer tras cada microtarea.
 
@@ -232,7 +232,7 @@ Un lote normal puede avanzar con la verificación del implementador hasta la rev
 Un único Reviewer final ejecuta `speckit-analyze` read-only y, en la misma revisión, comprueba fuentes, artefactos, código, tests y criterios.
 
 - Trabajo pendiente ya presente en `tasks.md`: vuelve al implementador.
-- Trabajo aprobado ausente de `tasks.md`: vuelve al Planner, invalida el baseline y exige nueva revisión y aprobación.
+- Trabajo aprobado ausente de `tasks.md`: vuelve al Planner, invalida el baseline, exige nueva revisión independiente y validación; después continúa implementación automáticamente.
 - Resultado completo: `approved` final.
 
 No se ejecuta otra revisión completa idéntica después de esta reconciliación.
@@ -243,7 +243,7 @@ El rediseño no elimina:
 
 - revisión independiente de la planificación;
 - congelación del conjunto aprobado;
-- frase exacta posterior `Approved, implement.`;
+- apertura automática de implementación tras revisión independiente, validación exitosa y congelado del baseline;
 - invalidación del gate cuando cambian artefactos gobernados;
 - revisión independiente final;
 - distinción entre `approved`, `corrections required` y `conditionally verified`.
@@ -311,7 +311,7 @@ Las pruebas de comportamiento conservarán prompts, identidades, resultados crud
 - Modificar las skills oficiales de SpecKit.
 - Convertir Luna en agente nativo.
 - Permitir planificación histórica automática entre tickets.
-- Eliminar el gate manual de implementación.
+- Eliminar la revisión independiente de planificación o la validación del ciclo.
 - Hacer que la skill afirme controlar el modelo del chat.
 - Publicar cambios en el remoto sin autorización explícita.
 
@@ -328,7 +328,7 @@ Las pruebas de comportamiento conservarán prompts, identidades, resultados crud
 9. El flujo normal no crea agentes ni revisiones por microtarea.
 10. Los cambios críticos, Luna y el resultado final conservan revisión independiente.
 11. El Reviewer final unifica reconciliación y verificación completa.
-12. Los gates de planificación, autorización exacta e invalidación permanecen vigentes.
+12. La revisión independiente, validación, congelado del baseline e invalidación ante cambios permanecen vigentes, sin pedir al usuario que apruebe el plan.
 13. El instalador respalda y retira solo el antiguo Orquestador gestionado.
 14. La suite RED/GREEN, el validador de distribución y el validador oficial pasan.
 15. La instalación global coincide con la fuente y los agentes no gestionados permanecen intactos.

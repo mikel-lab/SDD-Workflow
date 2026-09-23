@@ -62,7 +62,7 @@ class ValidateDistributionTests(unittest.TestCase):
             self.assertIn("### Rationalization Table", content)
             self.assertIn("### Red Flags", content)
 
-        self.assertIn("`approved, go ahead`", lifecycle)
+        self.assertIn("The deadline is today", lifecycle)
         self.assertIn("safer or more reversible", sources)
 
     def test_speckit_bootstrap_boundary_is_documented(self) -> None:
@@ -100,7 +100,8 @@ class ValidateDistributionTests(unittest.TestCase):
             self.assertIn("speckit-tasks", content)
             self.assertIn("speckit-implement", content)
         self.assertIn("always runs `speckit-analyze`", reviewer)
-        self.assertIn("fresh planning review and exact approval", planner)
+        self.assertIn("fresh independent planning review", planner)
+        self.assertIn("resumes implementation automatically", planner)
 
     def test_normal_path_has_one_planning_and_one_final_review(self) -> None:
         # Break caught: the routine path schedules extra implementation or

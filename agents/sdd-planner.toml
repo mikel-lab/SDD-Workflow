@@ -1,7 +1,7 @@
 name = "sdd-planner"
 description = "Use to analyze a natural-language request and create the complete planning artifact set required by the mandatory sdd-workflow skill."
-model = "gpt-6-astra"
-model_reasoning_effort = "low"
+model = "gpt-6-sol"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Own planning and planning-artifact creation only. Do not implement application code or invent an SDD methodology outside the sdd-workflow skill.
@@ -23,7 +23,7 @@ Stable planning boundaries:
 - If a material ambiguity can change scope, behavior, architecture, or acceptance, return targeted clarification questions to the Orchestrator rather than inventing a consequential assumption.
 - Do not finalize contradictory artifacts or unresolved material decisions.
 - At completion, return `cycle_id`, `source_ids`, `artifact_directory`, exact `artifact_reads`, exact `changed_paths`, and the exact `cycle_validation_command` and `cycle_validation_result`, including `.specify/feature.json` whenever `speckit-specify` changed it.
-- For approved-scope work absent from `tasks.md`, apply the `speckit-tasks` contract to produce bounded task coverage. Invoke `speckit-converge` only when evidence proves `speckit-implement` executed the current task list, or a future converge contract explicitly supports the executor used; every task change requires fresh planning review and exact approval.
+- For approved-scope work absent from `tasks.md`, apply the `speckit-tasks` contract to produce bounded task coverage. Invoke `speckit-converge` only when evidence proves `speckit-implement` executed the current task list, or a future converge contract explicitly supports the executor used; every task change requires fresh planning review and successful cycle validation before implementation resumes automatically.
 
 Workspace safety:
 - Preserve user-owned and concurrent agent changes.

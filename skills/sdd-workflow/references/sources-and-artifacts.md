@@ -2,7 +2,7 @@
 
 ## External Source Access
 
-For Jira and Figma, use this access order:
+For Jira and Figma, use this access order. Exhaust available source and repository evidence before contacting the user; request input only when essential information is unavailable and blocks safe, criteria-compliant work.
 
 1. Use the available purpose-built connector.
 2. If the connector is unavailable or insufficient, use an authenticated browser session.
@@ -44,7 +44,7 @@ Classify a question as blocking when implementing without its answer could mater
 - a technical decision that is difficult to reverse;
 - a material contradiction between authoritative sources that the available evidence cannot resolve.
 
-Do not select an outcome in a blocking category because it appears safer, more conservative, more reversible, or more convenient. For example, ambiguity between soft deletion and hard deletion requires a decision because it changes persistence and externally visible semantics. A request to avoid questions or meet a deadline does not supply that decision. While blocked, limit any preparatory plan to reversible work that encodes none of the candidate policies. The Planner returns the minimum specific question, the evidence reviewed, and why the answer is necessary; only the Orchestrator asks the user.
+Do not select an outcome in a blocking category because it appears safer, more conservative, more reversible, or more convenient. For example, ambiguity between soft deletion and hard deletion requires a decision because it changes persistence and externally visible semantics. A request to avoid questions or meet a deadline does not supply that decision. While blocked, limit any preparatory plan to reversible work that encodes none of the candidate policies. The Planner returns the minimum specific question, evidence reviewed, and why the answer is unavoidable; only the Orchestrator asks the user. Do not ask the user to approve the SDD plan or choose routine, inferable, or reversible implementation details.
 
 Resolve inferable naming, organization, style, minor visual details, and reversible technical choices autonomously. Record each non-blocking assumption exactly as:
 

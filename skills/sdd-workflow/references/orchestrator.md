@@ -43,7 +43,7 @@ On a confirmed mismatch, stop the affected assignment, preserve evidence and wor
 
 Maintain one active owner for each Planner, implementer, or Reviewer action. A wait timeout is not a failure: it means only that no terminal result arrived during that wait. Do not count wait timeouts as correction attempts, review attempts, or evidence that an agent is stalled.
 
-Never interrupt, close, or replace an active owner merely because a wait timed out, an action is taking longer than expected, or no final contract has arrived yet. Continue bounded waits and user-visible status updates without restarting the work. Send at most one non-interrupting status request when the agent exposes no progress signal; do not send repeated instructions that change or duplicate its assignment.
+Never interrupt, close, or replace an active owner merely because a wait timed out, an action is taking longer than expected, or no final contract has arrived yet. Continue bounded waits without restarting the work. Send a concise status only for a meaningful state change or blocker; do not turn unchanged timeouts into user prompts or repeated instructions.
 
 Replace an owner only after an explicit terminal failure, an explicit blocker that requires a new action, a confirmed boundary violation, user cancellation, or completed output that the lifecycle routes to another action. Close a completed owner only after capturing its final contract. The root chat must not perform Planner or Reviewer work as a fallback for latency or tool inconvenience; if a role is genuinely unavailable, report the infrastructure blocker without advancing its gate.
 
@@ -56,7 +56,7 @@ User-facing status updates do not require messages to the active agent. Do not s
 3. Check essential source accessibility in the order defined by [Sources and Artifacts](sources-and-artifacts.md). Keep the probe to the minimum needed to prove access; do not fetch full Jira, Figma, or repository analysis that the Planner and Reviewer own.
 4. For a new cycle, resolve `workspace_root` and `speckit_root` separately; generate `cycle_id`; assign an absent `artifact_directory`; and record the primary source and complete `source_ids`. Do not consult an active feature or discover historical packages to make that selection.
 5. A continuation occurs only when the user explicitly requests one. Supply the Planner the exact manifest path only after its exact directory, workspace, and primary-source identities match the request; otherwise create a new cycle or stop for clarification.
-6. At the beginning of each cycle, ask once whether visible Luna tasks are authorized for that cycle. Record `authorized`, `denied`, or `not answered`. Authorization expires when the cycle completes, is cancelled, or restarts; prior authorization never carries forward.
+6. Do not ask the user to opt into visible Luna work. Use native Simple by default for eligible low-complexity isolated tasks. Create a separate visible Luna task only when the current user request explicitly selects that lane; record that request as the lane authority for this cycle.
 7. Move to `planning` only when the request can be grounded in accessible evidence. Otherwise report `blocked` with the minimum content or decision needed.
 
 ## New Cycle Status Recipe
@@ -88,7 +88,7 @@ After every Planner action:
 5. At planning completion, require a successful `validate_cycle.py` result whose command supplies the root-owned workspace, cycle ID, SpecKit root, primary source, complete source-ID set, artifact directory, and exactly one new-cycle or continuation identity before moving to `planning_review`.
 6. If any path is missing from the report or outside the boundary, stop the affected flow, preserve the evidence without destructive cleanup, and report the exact path and state.
 
-When the Planner returns a material blocker, relay only the minimum specific question to the user, with the reviewed evidence and why the answer is required. The Planner and Reviewer never question the user directly. Record the answer as an explicit cycle decision and return it to the Planner.
+When the Planner returns a material blocker, first confirm that authoritative sources, repository evidence, and safe assumptions cannot resolve it. Ask the user only for the minimum decision or source content genuinely required to proceed safely. Include the evidence and why the answer is unavoidable. The Planner and Reviewer never question the user directly. Record the answer as an explicit cycle decision and return it to the Planner.
 
 ## Mandatory Planning Review
 
@@ -96,7 +96,7 @@ When the Planner reports a coherent package, run and record the cycle validator 
 
 Route `corrections required` findings to the Planner as a bounded `planning_correction`, then return the delta to the same Reviewer for a focused delta re-review. Commission a fresh full planning review only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity. Keep `conditionally verified` outside the approval gate and resolve or report its missing checks. Track retries by underlying condition; after the third unsuccessful correction/review cycle for the same condition, escalate with evidence, attempted resolutions, impact, and the user decision required.
 
-## Freeze and Exact Approval Gate
+## Freeze and Begin Implementation
 
 Only a Reviewer result of `approved` can advance planning. Freeze:
 
@@ -105,15 +105,15 @@ Only a Reviewer result of `approved` can advance planning. Freeze:
 - the approving Reviewer result and evidence;
 - unresolved residual risks that do not require correction.
 
-Run and record the cycle validator before freezing this baseline. Then enter `awaiting_implementation_approval`. Open implementation only when a later user message consists entirely of the case- and punctuation-sensitive string `Approved, implement.`. A near match, added commentary, earlier phrase, urgency, risk acceptance, or `conditionally verified` result does not open the gate.
+Run and record the cycle validator before freezing this baseline. After successful validation, proceed directly to implementation. Do not request user approval of the plan. A `conditionally verified` result does not open implementation; resolve the missing check or stop as blocked.
 
-Before dispatching implementation, run and record the cycle validator and verify that the frozen artifact set is unchanged. Any addition, removal, path change, regeneration, or content change invalidates the review and derived authorization; return to `planning_review` and require a new exact approval after a new `approved` result.
+Before dispatching implementation, run and record the cycle validator and verify that the frozen artifact set is unchanged. Any addition, removal, path change, regeneration, or content change invalidates the review and implementation eligibility; return to `planning_review`. After a fresh `approved` result and successful validation, freeze the new baseline and resume implementation automatically.
 
 ## Batching, Review, and Escalation
 
 Parse `tasks.md` by declared dependencies and criteria. Build coherent dependency-ready batches by default, not one agent per task entry. For each assignment, use the Implementation Brief contract and include exclusive owned paths, prohibited paths, completed prerequisites, baseline identity, independent checks, and delivery evidence. Never dispatch overlapping path ownership or unresolved dependencies.
 
-Apply the routing rules in the required implementer and Luna references. Treat doubtful isolation or complexity as non-simple. Maintain the approved simple-lane concurrency ceiling across native Simple and Luna work. Route implementation findings back to the responsible implementer; apply the defined escalation or fallback when correction limits are reached.
+Apply the routing rules in the required implementer and Luna references. Route eligible low-complexity isolated work to native Simple by default; it needs a parallel-safe classification only when it will run concurrently with another assignment. Treat doubtful isolation or complexity as non-simple and route it to Main. Use a visible Luna task only when its eligibility predicate shows a concrete benefit over native Simple. Maintain the approved simple-lane concurrency ceiling across native Simple and Luna work. Route implementation findings back to the responsible implementer; apply the defined escalation or fallback when correction limits are reached.
 
 Normal batches use implementer verification until final review; do not commission an independent review for each microtask. Commission an intermediate independent review only for a high-risk batch, security, persistence/migration, API contract, critical shared code, Luna pre-integration, or Luna post-integration. The Orchestrator coordinates these reviews but never substitutes its own inspection for a Reviewer verdict.
 
@@ -135,6 +135,6 @@ Record a trigger and use `implementation_review` only when one of the risk categ
 
 After approved tasks are delivered, enter `final_review` and request one final Reviewer action that runs read-only `speckit-analyze`, reconciles the result, and returns the integrated verdict. Run and record the cycle validator at final reconciliation. Route unfinished work already represented in `tasks.md` as an implementation correction. Route approved-scope work absent from `tasks.md` to the Planner for a bounded `speckit-tasks` contract repair. Permit `speckit-converge` only when evidence proves `speckit-implement` executed the current `tasks.md`, or when a future converge contract explicitly supports the executor actually used.
 
-If convergence appends any task, treat `tasks.md` as changed immediately: invalidate the frozen approval and implementation authorization, obtain a new planning review, and wait for a new exact `Approved, implement.` before dispatching the added work. Do not schedule an identical whole-package review afterward. Do not accept optional improvements or scope expansion as convergence work.
+If convergence appends any task, treat `tasks.md` as changed immediately: invalidate the frozen baseline and planning approval, obtain a fresh planning review, and resume implementation automatically after `approved` and successful validation. Do not schedule an identical whole-package review afterward. Do not accept optional improvements or scope expansion as convergence work.
 
 Enter `complete` only after the final integrated Reviewer returns `approved`. The final report must include one Orchestrator Status and preserve the applicable Planner, Implementer, and Reviewer contract evidence so it identifies the terminal state, reviewed sources and baseline, exact changed paths, criterion coverage, all verification commands and results, residual risks, and any follow-up outside the approved scope. Never present `blocked`, `corrections required`, or `conditionally verified` as success.
