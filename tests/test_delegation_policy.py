@@ -83,14 +83,14 @@ class DelegationPolicyTests(unittest.TestCase):
         self.assertIn("canonical TOML", self.policy)
         self.assertIn("Main/High exclusion", self.policy)
 
-    def test_canonical_model_and_effort_matrix_is_unchanged(self) -> None:
-        # Regression: this efficiency change silently changes model profiles.
+    def test_canonical_model_and_effort_matrix_matches_role_profiles(self) -> None:
+        # Regression: published TOML profiles and the validator diverge.
         self.assertEqual(self.validator["CANONICAL_AGENTS"], {
-            "sdd-planner.toml": ("sdd-planner", "gpt-6-astra", "low", "workspace-write"),
-            "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-5.6-terra", "medium", "workspace-write"),
-            "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-5.6-terra", "high", "workspace-write"),
-            "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-5.6-terra", "low", "workspace-write"),
-            "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6-astra", "low", "read-only"),
+            "sdd-planner.toml": ("sdd-planner", "gpt-6-sol", "high", "workspace-write"),
+            "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6-luna", "medium", "workspace-write"),
+            "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-6-luna", "high", "workspace-write"),
+            "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "low", "workspace-write"),
+            "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6-sol", "high", "read-only"),
         })
 
     def test_effective_configuration_requires_runtime_evidence(self) -> None:
@@ -167,17 +167,22 @@ class DelegationPolicyTests(unittest.TestCase):
         self.assertIn("python3 -m unittest discover -s tests -v", self.readme)
         self.assertIn("not a live Codex execution", self.readme)
 
-    def test_efficiency_does_not_weaken_existing_approval_gates(self) -> None:
-        # Regression: efficiency recommendations become authority to skip gates.
-        gate = section(self.orchestrator, "Freeze and Exact Approval Gate")
-        self.assertIn("case- and punctuation-sensitive string `Approved, implement.`", gate)
+    def test_plan_review_validation_and_freeze_open_implementation_automatically(self) -> None:
+        # Regression: the workflow asks for redundant user approval of a reviewed plan.
+        gate = section(self.orchestrator, "Freeze and Begin Implementation")
+        self.assertIn("proceed directly to implementation", gate)
+        self.assertIn("Do not request user approval of the plan", gate)
         self.assertIn("frozen artifact set is unchanged", gate)
-        self.assertIn("invalidates the review and derived authorization", gate)
+        self.assertIn("invalidates the review and implementation eligibility", gate)
 
     def test_luna_keeps_its_separate_execution_contract(self) -> None:
         # Regression: Luna is silently treated as a native Simple subagent.
+        luna = (self.root / "skills/sdd-workflow/references/luna-lane.md").read_text(encoding="utf-8")
+        main = (self.root / "agents/sdd-implementer-main.toml").read_text(encoding="utf-8")
         self.assertIn("Luna remains governed by", self.policy)
         self.assertIn("[Luna Lane](luna-lane.md)", self.policy)
+        self.assertIn("explicit request to use visible Luna", luna)
+        self.assertIn("no separate manual integration approval is required", main)
 
 
 if __name__ == "__main__":

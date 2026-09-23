@@ -18,9 +18,9 @@
 - Do not read consumer planning artifacts outside the selected cycle directory.
 - Reuse requires an explicit continuation request plus exact workspace and primary-source identity.
 - The root chat is the Orchestrator role and must not dispatch `sdd-orchestrator`.
-- Preserve the exact `Approved, implement.` gate, baseline invalidation, Reviewer read-only behavior, Main/High exclusivity, Luna authorization, and the aggregate simple-lane ceiling.
-- Use GPT-6 Astra/low for Planner and Reviewer; preserve Main, High, and Simple on Terra medium/high/low.
-- Final source inventory: exactly 24 files—remove one Orchestrator TOML and add one runtime validator.
+- Preserve independent planning review, successful cycle validation, frozen-baseline invalidation, Reviewer read-only behavior, Main/High exclusivity, explicit visible-Luna selection, and the aggregate simple-lane ceiling. Implementation resumes automatically after a valid review and freeze.
+- Use GPT-6 Sol/high for Planner and Reviewer; use GPT-6 Luna with medium/high/low effort for Main, High, and Simple.
+- Final source inventory: exactly 25 files—remove one Orchestrator TOML, add one runtime validator, and include the delegation-policy test.
 - Store evidence only below `/tmp/codex-sdd-cycle-isolation-evidence`.
 - Install globally only after tests and independent review pass; back up the retired installed Orchestrator.
 - Preserve every unmanaged agent.
@@ -31,7 +31,7 @@
 - Create `skills/sdd-workflow/scripts/validate_cycle.py`: validate one exact cycle without sibling discovery.
 - Modify `skills/sdd-workflow/SKILL.md`: root-chat authority, isolation and efficient normal path.
 - Modify references `orchestrator.md`, `sources-and-artifacts.md`, `contracts.md`, `planner.md`, `reviewer.md`, `lifecycle-and-gates.md`, and `implementers.md`.
-- Preserve `luna-lane.md` unless a regression proves an incompatibility.
+- Update `luna-lane.md` for explicit visible-Luna selection, default native Simple routing, and automatic Main integration after independent pre-integration review.
 - Delete `agents/sdd-orchestrator.toml`.
 - Modify `agents/sdd-planner.toml` and `agents/sdd-reviewer.toml`.
 - Preserve three implementer TOMLs unless a failing test requires wording changes.
@@ -242,7 +242,7 @@ git commit -m "feat: isolate every SDD cycle"
 - Test: `tests/test_validate.py`
 
 **Interfaces:**
-- Normal sequence: `Root chat -> Planner -> planning Reviewer -> exact gate -> Main -> final Reviewer`.
+- Normal sequence: `Root chat -> Planner -> planning Reviewer -> successful validation and frozen baseline -> Main -> final Reviewer`.
 - Intermediate-review triggers: high-risk batch, security, persistence/migration, API contract, critical shared code, Luna pre-integration, Luna post-integration.
 
 - [x] **Step 1: Add failing review-budget tests**
@@ -266,7 +266,7 @@ Use one full planning review. Bounded corrections return to Planner and the same
 
 - [x] **Step 4: Implement coherent execution batches**
 
-Main owns a coherent dependency-ready batch by default, not one agent per task entry. Simple or Luna are allowed only when isolation yields net savings. High replaces Main. Normal batches use implementer verification until final review.
+Main owns a coherent dependency-ready batch by default, not one agent per task entry. Native Simple handles eligible low-complexity isolated work by default; standalone Simple needs no `parallel-safe` label. Visible Luna requires an explicit user request and a concrete benefit over Simple. High replaces Main. Normal batches use implementer verification until final review.
 
 - [x] **Step 5: Merge reconciliation and final review**
 
@@ -334,7 +334,7 @@ Back up skill, active agents and existing retired agents before mutation. Instal
 
 - [x] **Step 4: Update README**
 
-Document root-chat coordination, Sol-medium recommendation, five agents, isolated package by default, explicit continuation, validator use, upgrade backup, rollback, and unchanged implementation gate.
+Document root-chat coordination, current role profiles, five agents, isolated package by default, explicit continuation, validator use, upgrade backup, rollback, and automatic implementation after review, validation, and baseline freeze.
 
 - [x] **Step 5: Run GREEN**
 

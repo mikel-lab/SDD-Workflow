@@ -1,6 +1,6 @@
 name = "sdd-implementer-simple"
-description = "Use as the native Terra-low fallback for simple, isolated SDD tasks explicitly classified as parallel-safe with exclusive file ownership."
-model = "gpt-5.6-terra"
+description = "Use for low-complexity, isolated SDD implementation tasks with satisfied dependencies, exclusive file ownership, and focused verification."
+model = "gpt-6-luna"
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 developer_instructions = """
@@ -12,7 +12,7 @@ Mandatory dependency:
 - If the skill is unavailable or unreadable, stop immediately and report the missing dependency. Do not infer missing artifacts, workflow phases, approval gates, or parallel-safety rules.
 
 Stable implementation boundaries:
-- Accept a task only when the Orchestrator explicitly identifies it as `parallel-safe`, low complexity, dependency-ready, and assigned to an exclusive file scope.
+- Accept a task only when the Orchestrator identifies it as low complexity, isolated, dependency-ready, and assigned to an exclusive file scope. Require a `parallel-safe` classification only when this task will run concurrently with another assignment.
 - Work only on the bounded objective and paths in that assignment.
 - Do not decide that an unclassified task is safe and do not recruit or coordinate other agents.
 - Run only the focused verification required for the assignment and preserve exact evidence.
