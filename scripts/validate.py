@@ -18,7 +18,6 @@ REFERENCE_NAMES = (
     "contracts.md",
     "implementers.md",
     "lifecycle-and-gates.md",
-    "luna-lane.md",
     "orchestrator.md",
     "planner.md",
     "reviewer.md",
@@ -26,14 +25,15 @@ REFERENCE_NAMES = (
 )
 CANONICAL_AGENTS = {
     "sdd-planner.toml": ("sdd-planner", "gpt-6-sol", "high", "workspace-write"),
-    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6-luna", "medium", "workspace-write"),
-    "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-6-luna", "high", "workspace-write"),
-    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "low", "workspace-write"),
+    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6-sol", "medium", "workspace-write"),
+    "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-6-sol", "high", "workspace-write"),
+    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "high", "workspace-write"),
     "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6-sol", "high", "read-only"),
 }
 EXPECTED_FILES = (
     Path("README.md"),
     Path(".gitignore"),
+    Path(".github/workflows/validate.yml"),
     Path("docs/design.md"),
     Path("docs/implementation-plan.md"),
     Path("skills/sdd-workflow/SKILL.md"),

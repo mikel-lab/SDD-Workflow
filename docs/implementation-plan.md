@@ -1,502 +1,85 @@
-# Isolated SDD Cycles Implementation Plan
+# Native GPT-6 SDD Maintenance Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+## Scope and authority
 
-**Goal:** Make the active chat the sole SDD coordinator, guarantee a new isolated SpecKit package for every new cycle, and reduce routine agent/review overhead.
+Date: 2026-09-24. The user authorized this distribution update: use the proposed native GPT-6 profiles, remove the obsolete external execution mechanism completely, and make the SDD cycle automatic except for unavoidable user-owned blockers. This is the maintenance plan for the workflow repository, not an additional planning workflow or approval requirement for consumer tasks.
 
-**Architecture:** The root chat owns the state machine and delegates only planning, implementation, and independent verification. Every cycle is bound to `sdd-cycle.json`, a new explicit `SPECIFY_FEATURE_DIRECTORY`, and a deterministic validator that never discovers historical feature contents. The distribution contains five native agents; the normal path has one planning review, one principal implementer, and one final Reviewer that combines reconciliation and verification.
+Preserve the five-role architecture, sole root-chat coordinator, isolated SpecKit cycles, independent review, exact baseline validation, source boundaries, and explicit user limits. Do not change official SpecKit skills, weaken runtime access controls, or claim a global installation or live model test from repository CI.
 
-**Tech Stack:** Codex skills Markdown/YAML, TOML, Python 3.11+ standard library, Bash, SpecKit, Superpowers skill TDD, Git, and fresh Codex agents for behavioral tests.
+## Target profiles
 
-**Execution status:** Implemented and globally installed on 2026-08-06. Final verification passed 57 Python tests, installer migration tests, distribution and official skill validation, Bash syntax, byte-parity checks, unmanaged-agent hash checks, and installed-runtime PASS/FAIL smoke cases. Publication remains separately gated.
+| Owner | Model | Effort |
+| --- | --- | --- |
+| Root session recommendation | gpt-6-sol | medium |
+| Planner | gpt-6-sol | high |
+| Main | gpt-6-sol | medium |
+| High | gpt-6-sol | high |
+| Simple | gpt-6-luna | high |
+| Reviewer | gpt-6-sol | high |
 
-## Global Constraints
+The root remains the invoking session, not a sixth TOML. All configured roles use native delegation. Main and High remain mutually exclusive; at most two Simple assignments may execute concurrently with exclusive ownership across every writer.
 
-- Approved design: `docs/design.md` on branch `codex/sdd-cycle-isolation`.
-- Do not modify official SpecKit skills.
-- A new cycle ignores `.specify/feature.json` as selection input and passes a new exact `SPECIFY_FEATURE_DIRECTORY` to `speckit-specify`.
-- Do not read consumer planning artifacts outside the selected cycle directory.
-- Reuse requires an explicit continuation request plus exact workspace and primary-source identity.
-- The root chat is the Orchestrator role and must not dispatch `sdd-orchestrator`.
-- Preserve independent planning review, successful cycle validation, frozen-baseline invalidation, Reviewer read-only behavior, Main/High exclusivity, explicit visible-Luna selection, and the aggregate simple-lane ceiling. Implementation resumes automatically after a valid review and freeze.
-- Use GPT-6 Sol/high for Planner and Reviewer; use GPT-6 Luna with medium/high/low effort for Main, High, and Simple.
-- Final source inventory: exactly 25 files—remove one Orchestrator TOML, add one runtime validator, and include the delegation-policy test.
-- Store evidence only below `/tmp/codex-sdd-cycle-isolation-evidence`.
-- Install globally only after tests and independent review pass; back up the retired installed Orchestrator.
-- Preserve every unmanaged agent.
-- Do not push without separate user authorization.
+## Implementation sequence
 
-## File Map
+### 1. Establish regression evidence
 
-- Create `skills/sdd-workflow/scripts/validate_cycle.py`: validate one exact cycle without sibling discovery.
-- Modify `skills/sdd-workflow/SKILL.md`: root-chat authority, isolation and efficient normal path.
-- Modify references `orchestrator.md`, `sources-and-artifacts.md`, `contracts.md`, `planner.md`, `reviewer.md`, `lifecycle-and-gates.md`, and `implementers.md`.
-- Update `luna-lane.md` for explicit visible-Luna selection, default native Simple routing, and automatic Main integration after independent pre-integration review.
-- Delete `agents/sdd-orchestrator.toml`.
-- Modify `agents/sdd-planner.toml` and `agents/sdd-reviewer.toml`.
-- Preserve three implementer TOMLs unless a failing test requires wording changes.
-- Modify `scripts/validate.py`, `scripts/install.sh`, `tests/test_validate.py`, `tests/test_install.sh`, `README.md`, and final documentation status.
+Add policy tests before implementation for the target model matrix, native-only inventory, root recommendation, explicit autonomy predicate, internal escalation, no recursive delegation, recoverable coordinator checkpoint, and read-only verification handoff. Keep existing isolation and review guards. Replace obsolete tests for the removed execution contract with guards against its reintroduction.
 
----
+Run policy tests through GitHub Actions against the unchanged implementation. The initial tests-only commit recorded nine expected failures across 25 policy tests. This is structural regression evidence; it is not an observed failure of a model or a runtime behavioral experiment.
 
-### Task 1: Add the Deterministic Cycle Validator
+### 2. Update profiles and execution contracts
 
-**Files:**
-- Create: `skills/sdd-workflow/scripts/validate_cycle.py`
-- Modify: `tests/test_validate.py`
-- Modify: `scripts/validate.py`
+Update the three implementer profiles, preserve Planner and Reviewer model settings, and align all five instruction bodies with autonomous in-scope execution and root-only delegation. Update the canonical validator matrix at the same time.
 
-**Interfaces:**
-- CLI: `python validate_cycle.py --manifest PATH --expected-workspace PATH --expected-cycle-id ID --expected-speckit-root PATH --expected-source TEAM-123 --expected-source-id TEAM-123 [--expected-source-id TEAM-456 ...] --expected-artifact-directory specs/ID-feature (--new-cycle | --expected-continuation-of ID) [--require-tasks]`
-- Manifest keys: `schema_version`, `cycle_id`, `workspace_root`, `speckit_root`, `primary_source`, `source_ids`, `artifact_directory`, `artifacts`, `continuation_of`.
-- Success: exit 0 and `Cycle validation passed.`; failure: exit 1 and actionable `ERROR:` lines.
+Remove the obsolete external reference file and every corresponding instruction, eligibility rule, integration stage, model-specific review, and documentation reference. Do not replace it with another external execution mechanism. Native Simple handles eligible bounded work under the common contract.
 
-- [x] **Step 1: Write fixture helpers and failing tests**
+Update `SKILL.md`, role references, README, and the current design. Use an explicit root-session recommendation rather than claiming the skill configures the active session.
 
-Add `CycleValidatorTests` to `tests/test_validate.py`. Its fixture uses:
+### 3. Define automatic transitions and recovery
 
-```text
-fixture/
-├── .specify/feature.json
-├── mobile-app/
-└── specs/20260806-143500-mobile-app-team-123-feature/
-    ├── sdd-cycle.json
-    ├── spec.md
-    └── tasks.md
-```
+Use the initial task as authority for the in-scope cycle. Continue automatically after independent planning approval, successful validation, and freeze. Apply corrections, task-coverage repairs, re-reviews, verification handoffs, and internal profile selection without routine user approval. Preserve explicit plan-only, pause, cancellation, and narrower scope instructions.
 
-Use this manifest:
+Require all three elements before user attention: a necessary blocked action, exhausted relevant evidence and authorized safe recovery, and an indispensable decision, source, access, or authority only the user can provide. Ask before the affected action using the dedicated contract. A purely technical failure is reported with evidence instead of requesting a meaningless approval.
 
-```python
-manifest = {
-    "schema_version": 1,
-    "cycle_id": "20260806-143500",
-    "workspace_root": str(workspace.resolve()),
-    "speckit_root": str(root.resolve()),
-    "primary_source": "TEAM-123",
-    "source_ids": ["TEAM-123"],
-    "artifact_directory": "specs/20260806-143500-mobile-app-team-123-feature",
-    "artifacts": ["spec.md", "tasks.md"],
-    "continuation_of": None,
-}
-```
+After three failed correction/review cycles for one underlying condition, diagnose and escalate internally. Continue only with a materially different evidenced recovery and bounded verification target; never rename a condition to restart the counter. Do not replace active agents because a wait times out.
 
-Add tests named:
+### 4. Preserve state without changing the approved package
 
-```python
-test_valid_isolated_cycle_passes
-test_active_feature_mismatch_fails
-test_workspace_identity_mismatch_fails
-test_primary_source_mismatch_fails
-test_unlisted_artifact_fails
-test_cross_spec_reference_fails
-test_foreign_jira_key_fails
-test_tasks_must_start_at_t001
-test_artifact_symlink_escape_fails
-```
+Add the operational Orchestrator Checkpoint to the existing contracts reference. Keep cycle identity, state, baseline, user decisions, active/completed assignments, dependencies, reviews, and next permitted transition recoverable in the root session. Do not add a consumer planning artifact or change the manifest schema.
 
-- [x] **Step 2: Run RED**
+Preserve literal Cycle Identity Handoff values, requested-versus-observed delegation metadata, supported history controls, neutral review briefs, and ownership on delta reviews. On recovery, check the current baseline and existing agents rather than restarting them.
+
+### 5. Keep verification independent and executable
+
+Retain read-only Reviewer behavior. Route write-producing checks after the implementation gate to the assigned implementer, then give exact command, output, exit status, and baseline evidence back to the Reviewer. The Reviewer independently assesses the evidence; a success assertion alone is insufficient.
+
+A missing check remains incomplete verification. Before the gate, retain the existing product-write prohibition. Do not weaken sandbox settings or ask the user to waive required verification. Normal final-review corrections return to final review without a redundant intermediate gate.
+
+### 6. Validate installation migration
+
+The existing installer already backs up and replaces the complete managed skill directory. Add regression coverage proving an obsolete managed reference is absent after upgrade and its original bytes remain in the backup. Confirm dry-run performs no removal, fresh installs contain five agents and the current reference set, and unmanaged agents remain unchanged.
+
+Keep the exact distribution inventory synchronized: remove one reference and add the CI workflow, leaving 25 files and seven direct references. Do not change the cycle validator's identity, source, or manifest semantics.
+
+### 7. Run full verification and publish evidence
+
+Run these checks on the completed PR commit:
 
 ```bash
-python3 -B -m unittest -v tests.test_validate.CycleValidatorTests
-```
-
-Expected: failure because `validate_cycle.py` is absent.
-
-- [x] **Step 3: Implement the minimal script**
-
-Define:
-
-```python
-JIRA_KEY = re.compile(r"\b[A-Z][A-Z0-9]+-[0-9]+\b")
-
-def load_json(path: Path) -> dict[str, object]: ...
-def resolve_inside(root: Path, relative: str) -> Path: ...
-def actual_artifacts(artifact_dir: Path) -> set[str]: ...
-def referenced_spec_paths(text: str) -> set[str]: ...
-def validate_cycle(
-    manifest_path: Path,
-    expected_workspace: Path,
-    expected_source: str,
-    expected_cycle_id: str,
-    expected_speckit_root: Path,
-    expected_artifact_directory: str,
-    expected_source_ids: list[str],
-    expected_continuation_of: str | None,
-    require_tasks: bool,
-) -> list[str]: ...
-def main() -> int: ...
-```
-
-The implementation must require the exact schema; compare every root-supplied identity, complete source-ID set, and exclusive new/continuation mode; resolve all paths inside the declared roots; reject symlinks; compare `artifacts` with actual files except `sdd-cycle.json`; read only listed files; reject cross-package `specs/` references, local relative references that escape the containing package, and unauthorized Jira keys; verify `.specify/feature.json`; and require the first task ID to be `T001` when `--require-tasks` is set. It must never enumerate sibling feature directories.
-
-- [x] **Step 4: Register the runtime file**
-
-Add `Path("skills/sdd-workflow/scripts/validate_cycle.py")` to `EXPECTED_FILES`. The intermediate tree has 25 files until Task 4 removes the old agent.
-
-- [x] **Step 5: Run GREEN and regressions**
-
-```bash
-python3 -B -m unittest -v tests.test_validate.CycleValidatorTests
-python3 -B -m unittest -v tests/test_validate.py
-python3 -B scripts/validate.py
-```
-
-- [x] **Step 6: Commit**
-
-```bash
-git add skills/sdd-workflow/scripts/validate_cycle.py tests/test_validate.py scripts/validate.py
-git commit -m "feat: validate isolated SDD cycles"
-```
-
----
-
-### Task 2: Move Orchestration to the Root Chat and Enforce Isolation
-
-**Files:**
-- Modify: `skills/sdd-workflow/SKILL.md`
-- Modify: `skills/sdd-workflow/references/orchestrator.md`
-- Modify: `skills/sdd-workflow/references/sources-and-artifacts.md`
-- Modify: `skills/sdd-workflow/references/contracts.md`
-- Modify: `skills/sdd-workflow/references/planner.md`
-- Modify: `agents/sdd-planner.toml`
-- Modify: `agents/sdd-reviewer.toml`
-- Test: `tests/test_validate.py`
-- Evidence: `/tmp/codex-sdd-cycle-isolation-evidence/task-2/`
-
-**Interfaces:**
-- Planner/Reviewer result fields: `cycle_id`, `source_ids`, `artifact_directory`, `artifact_reads`, `changed_paths`, `cycle_validation_command`, `cycle_validation_result`.
-
-- [x] **Step 1: Preserve a sanitized RED incident**
-
-Record:
-
-```text
-New source: TEAM-807
-Previously active package: TEAM-790 with T001-T067
-Wrong decision: reuse the related active package and append T068-T080
-Wrong ownership: root chat and configured Orchestrator were treated as competing coordinators
-```
-
-Do not copy consumer code, private ticket text or absolute paths.
-
-- [x] **Step 2: Add failing structural tests**
-
-```python
-test_root_chat_is_declared_as_sole_orchestrator
-test_root_chat_must_not_dispatch_sdd_orchestrator
-test_new_cycle_ignores_active_feature_as_selection_input
-test_explicit_feature_directory_is_mandatory
-test_historical_spec_discovery_is_forbidden
-test_planner_and_reviewer_report_artifact_reads
-test_continuation_requires_explicit_request_and_identity_match
-```
-
-Expected: RED against current source.
-
-- [x] **Step 3: Rewrite the core authority and sequence**
-
-In `SKILL.md`, add `Root Chat Authority`: the invoking chat owns coordination and user contact, must not dispatch `sdd-orchestrator`, and delegates Planner, implementers and Reviewer. Require cycle identity before artifact reads and the cycle validator at planning completion, pre-review, baseline freeze, pre-implementation, and final reconciliation. Rename the quick-reference row to `Root chat (Orchestrator role)`.
-
-- [x] **Step 4: Add positive new-cycle and continuation recipes**
-
-New cycle order:
-
-```text
-validate request and source access
-resolve workspace_root and speckit_root separately
-create cycle_id and an absent artifact_directory
-delegate manifest creation and speckit-specify with exact SPECIFY_FEATURE_DIRECTORY
-validate manifest and active feature output
-permit artifact reads only from artifact_directory
-```
-
-Continuation is a separate conditional triggered only by explicit user intent. Require manifest, exact path, workspace and primary-source matches before opening the package. Prohibit `find`, `rg`, globbing or equivalent artifact discovery across the feature root.
-
-- [x] **Step 5: Update contracts and agent instructions**
-
-Planner creates `sdd-cycle.json` as its first control artifact, invokes official `speckit-specify` with the assigned directory, maintains `artifacts`, and reports exact reads/writes. Reviewer receives exact paths and never discovers feature packages. Any external artifact read invalidates the result.
-
-- [x] **Step 6: Run GREEN**
-
-```bash
-python3 -B -m unittest -v tests.test_validate.ValidateDistributionTests
-python3 -B scripts/validate.py
-```
-
-- [x] **Step 7: Commit**
-
-```bash
-git add skills/sdd-workflow agents/sdd-planner.toml agents/sdd-reviewer.toml tests/test_validate.py
-git commit -m "feat: isolate every SDD cycle"
-```
-
----
-
-### Task 3: Reduce Routine Reviews Without Weakening Gates
-
-**Files:**
-- Modify: `skills/sdd-workflow/SKILL.md`
-- Modify: references `orchestrator.md`, `lifecycle-and-gates.md`, `planner.md`, `reviewer.md`, `implementers.md`
-- Modify only if required by RED: `agents/sdd-reviewer.toml`
-- Test: `tests/test_validate.py`
-
-**Interfaces:**
-- Normal sequence: `Root chat -> Planner -> planning Reviewer -> successful validation and frozen baseline -> Main -> final Reviewer`.
-- Intermediate-review triggers: high-risk batch, security, persistence/migration, API contract, critical shared code, Luna pre-integration, Luna post-integration.
-
-- [x] **Step 1: Add failing review-budget tests**
-
-```python
-test_normal_path_has_one_planning_and_one_final_review
-test_minor_planning_correction_uses_focused_delta_rereview
-test_normal_microtasks_do_not_each_require_independent_review
-test_high_risk_batches_still_require_review
-test_luna_keeps_pre_and_post_integration_reviews
-test_final_reviewer_combines_speckit_analyze_and_final_verdict
-```
-
-- [x] **Step 2: Run RED**
-
-Run the six tests. Expected: current per-native-batch and separate convergence/final-review language fails.
-
-- [x] **Step 3: Implement the planning budget**
-
-Use one full planning review. Bounded corrections return to Planner and the same Reviewer performs a focused delta re-review. Require another full review only after material changes to scope, architecture, acceptance criteria, source set or artifact identity.
-
-- [x] **Step 4: Implement coherent execution batches**
-
-Main owns a coherent dependency-ready batch by default, not one agent per task entry. Native Simple handles eligible low-complexity isolated work by default; standalone Simple needs no `parallel-safe` label. Visible Luna requires an explicit user request and a concrete benefit over Simple. High replaces Main. Normal batches use implementer verification until final review.
-
-- [x] **Step 5: Merge reconciliation and final review**
-
-The final Reviewer runs read-only `speckit-analyze` and returns the integrated verdict in the same action. Existing-task gaps return to an implementer; missing task coverage returns to Planner and invalidates the baseline. Do not schedule an identical whole-package review afterward.
-
-- [x] **Step 6: Run GREEN and commit**
-
-```bash
-python3 -B -m unittest -v tests/test_validate.py
-python3 -B scripts/validate.py
-git add skills/sdd-workflow tests/test_validate.py agents/sdd-reviewer.toml
-git commit -m "refactor: reduce routine SDD review overhead"
-```
-
-Omit `agents/sdd-reviewer.toml` if unchanged.
-
----
-
-### Task 4: Migrate the Distribution from Six Agents to Five
-
-**Files:**
-- Delete: `agents/sdd-orchestrator.toml`
-- Modify: `scripts/validate.py`, `scripts/install.sh`
-- Modify: `tests/test_validate.py`, `tests/test_install.sh`
-- Modify: `README.md`
-
-**Interfaces:**
-- Active agents: Planner, Main, High, Simple, Reviewer.
-- Retired managed agent: `sdd-orchestrator.toml`.
-- Installer must back up the retired file before removing only that exact active path.
-
-- [x] **Step 1: Add failing migration tests**
-
-Update canonical expectations to five. Add installer tests:
-
-```text
-fresh install has five agents and no Orchestrator
-upgrade backs up exact previous Orchestrator bytes and retires it
-dry-run reports retirement but writes nothing
-unmanaged agents remain byte-identical
-```
-
-Expected: RED while six-agent management remains.
-
-- [x] **Step 2: Delete the source Orchestrator and update inventory**
-
-Remove its TOML and canonical entry. Keep `references/orchestrator.md` for the root chat. Include the runtime validator in `EXPECTED_FILES`; final source count returns to 24.
-
-- [x] **Step 3: Implement recoverable retirement**
-
-Use:
-
-```bash
-agent_names=(
-  sdd-planner.toml
-  sdd-implementer-main.toml
-  sdd-implementer-high.toml
-  sdd-implementer-simple.toml
-  sdd-reviewer.toml
-)
-retired_agent_names=(sdd-orchestrator.toml)
-```
-
-Back up skill, active agents and existing retired agents before mutation. Install current files, then remove only exact retired paths. Dry-run reports both actions without writes.
-
-- [x] **Step 4: Update README**
-
-Document root-chat coordination, current role profiles, five agents, isolated package by default, explicit continuation, validator use, upgrade backup, rollback, and automatic implementation after review, validation, and baseline freeze.
-
-- [x] **Step 5: Run GREEN**
-
-```bash
-python3 -B -m unittest -v tests/test_validate.py
-SDD_PYTHON=python3 bash tests/test_install.sh
-python3 -B scripts/validate.py
-bash -n scripts/install.sh tests/test_install.sh
-git ls-files | wc -l
-```
-
-Expected: all pass and count 24.
-
-- [x] **Step 6: Commit**
-
-```bash
-git add -A agents scripts tests README.md skills/sdd-workflow
-git commit -m "feat: move SDD coordination to the root chat"
-```
-
----
-
-### Task 5: Forward-Test the Real Failure Modes
-
-**Files:**
-- Modify only when evidence requires it: skill/reference files and Planner/Reviewer TOMLs
-- Evidence: `/tmp/codex-sdd-cycle-isolation-evidence/task-5/`
-
-**Interfaces:**
-- Root behavior model: GPT-5.6 Sol/medium, fresh context.
-- Evidence: exact prompt, agent identity, raw output and manual score.
-
-- [x] **Step 1: Define two combined pressure prompts**
-
-Isolation prompt pressures the agent to reuse an active TEAM-790 feature for new TEAM-807 because names are related, most old tasks are complete, and the deadline is near. PASS requires root ownership, a new explicit directory, no historical artifact read and no task append.
-
-Review-budget prompt supplies a normal low-risk batch with 12 microtasks. PASS requires implementer verification plus one final Reviewer, not 12 reviews.
-
-- [x] **Step 2: Run five no-guidance controls per prompt**
-
-Preserve ten raw outputs. Classify controls that pass as non-regression, never causal RED.
-
-- [x] **Step 3: Run five guided cases per prompt**
-
-Require ten fresh agents to read the source skill first. All guided cases must pass.
-
-- [x] **Step 4: Test continuation**
-
-Run one guided matching-manifest continuation and one mismatched-workspace continuation. Expected: exact reuse, then blocking.
-
-- [x] **Step 5: Apply only demonstrated refinements**
-
-Use positive recipes for wrong shape, required fields for omissions and concise prohibitions only for observed discipline violations.
-
-- [x] **Step 6: Re-run affected variants and validation**
-
-```bash
-python3 -B -m unittest -v tests/test_validate.py
-python3 -B scripts/validate.py
-python3 -B "$HOME/.codex/skills/.system/skill-creator/scripts/quick_validate.py" skills/sdd-workflow
-```
-
-- [x] **Step 7: Commit only if source changed**
-
-```bash
-git add skills/sdd-workflow agents/sdd-planner.toml agents/sdd-reviewer.toml
-git commit -m "fix: harden SDD cycle isolation"
-```
-
----
-
-### Task 6: Independent Review and Global Migration
-
-**Files:**
-- Inspect: all 24 source files
-- Install: global skill and five agent TOMLs
-- Retire: global `sdd-orchestrator.toml`
-- Evidence: `/tmp/codex-sdd-cycle-isolation-evidence/task-6/`
-
-**Interfaces:**
-- Produces source/install byte parity, retired-agent backup and unchanged unmanaged hashes.
-
-- [x] **Step 1: Verify source**
-
-```bash
-python3 -B -m unittest -v tests/test_validate.py
-SDD_PYTHON=python3 bash tests/test_install.sh
-python3 -B scripts/validate.py
-python3 -B "$HOME/.codex/skills/.system/skill-creator/scripts/quick_validate.py" skills/sdd-workflow
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_delegation_policy.py' -v
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+bash tests/test_install.sh
 bash -n scripts/install.sh tests/test_install.sh
 git diff --check
 ```
 
-- [x] **Step 2: Obtain independent read-only review**
+CI uses a read-only checkout, Python 3.11 or newer, and temporary installer destinations. It must not change the working tree. Record observed test counts and the exact passing run in the PR rather than copying historical results from another version. The optional official skill validator runs only when installed; its absence is not proof it passed.
 
-Use one fresh `sdd-reviewer` with design, plan, source, raw evidence and acceptance criteria. Do not install with Critical/Important findings open. Send confirmed findings through one bounded correction and one focused re-review.
+Review the complete diff for contradictory model recommendations, missing reference links, surviving manual gates, unsafe widening of authority, extra source writes by Reviewer, and changes to unrelated cycle checks. Keep branch publication distinct from merging into main or updating a user's installed skill.
 
-- [x] **Step 3: Snapshot global state**
+## Verification boundaries
 
-Hash every global agent. Copy current skill and Orchestrator to `/tmp/codex-sdd-cycle-isolation-evidence/task-6/pre-install-backup/`.
+Repository policy tests assert shipped configuration and instruction contracts. Validator and installer tests execute their actual Python/Bash entrypoints in isolated fixtures. Neither these tests nor a green CI run demonstrates actual subagent selection, model quality, token cost, or long-context coordination.
 
-- [x] **Step 4: Dry-run and install**
-
-Run `./scripts/install.sh --dry-run`, verify five installs plus retirement, then run the tested installer with Python 3.11+.
-
-- [x] **Step 5: Verify migration**
-
-Confirm skill parity, five-agent parity, absent active Orchestrator, backup containing the former Orchestrator, official validation success and unchanged unmanaged hashes.
-
-- [x] **Step 6: Smoke-test the installed runtime validator**
-
-Create a temporary valid TEAM-123 cycle and require tasks; expect PASS. Point active feature at another path; expect FAIL. Never use real consumer artifacts.
-
----
-
-### Task 7: Final Documentation and Local Handoff
-
-**Files:**
-- Modify: `docs/design.md`
-- Modify: `docs/implementation-plan.md`
-
-**Interfaces:**
-- Produces a clean local branch ready for separately authorized publication.
-
-- [x] **Step 1: Update statuses honestly**
-
-Mark design implementation `verificada` only after Task 6. Mark plan checkboxes only with evidence. Keep non-regression distinct from causal improvement.
-
-- [x] **Step 2: Run final verification**
-
-```bash
-python3 -B -m unittest -v tests/test_validate.py
-SDD_PYTHON=python3 bash tests/test_install.sh
-python3 -B scripts/validate.py
-python3 -B "$HOME/.codex/skills/.system/skill-creator/scripts/quick_validate.py" skills/sdd-workflow
-git ls-files | sort
-git diff --check
-```
-
-Expected: all checks pass and exactly 24 files are listed.
-
-- [x] **Step 3: Reconfirm global parity and retirement**
-
-Compare entire skill and five agents byte-for-byte; confirm retired Orchestrator absent and unmanaged hashes unchanged.
-
-- [x] **Step 4: Commit final documentation**
-
-```bash
-git add docs/design.md docs/implementation-plan.md
-git commit -m "docs: finalize isolated SDD workflow"
-```
-
-- [ ] **Step 5: Verify handoff**
-
-```bash
-git status -sb
-git log --oneline --decorate main..HEAD
-git remote -v
-```
-
-Expected: clean local branch, commits ahead of main, remote unchanged, no push.
-
-- [ ] **Step 6: Report and request publication authority**
-
-Report commits, installed paths, backup, exact tests, evidence classification, review verdict and residual risks. Ask whether to merge/push; do not infer authority.
+A live Codex smoke test must later confirm effective model/effort, supported native delegation, no unnecessary parent history, automatic phase transitions, and escalation behavior on representative tasks. No such runtime experiment or active-user installation is asserted by this maintenance update.

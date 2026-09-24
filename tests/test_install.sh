@@ -54,15 +54,17 @@ test_incompatible_explicit_python_fails_before_validation_or_writes() {
 }
 
 test_fresh_install() {
-  # Break caught: a fresh install retains the retired Orchestrator or omits
-  # one of the five active managed agents.
+  # Break caught: a fresh install retains a retired file or omits an active agent.
   local home="$temp_root/fresh"
   run_install "$home"
   assert_file "$home/skills/sdd-workflow/SKILL.md"
   local count
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
   [[ $count == 5 ]] || fail "expected five managed agents, got $count"
+  count=$(find "$home/skills/sdd-workflow/references" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
+  [[ $count == 7 ]] || fail "expected seven references, got $count"
   assert_not_exists "$home/agents/sdd-orchestrator.toml"
+  assert_not_exists "$home/skills/sdd-workflow/references/luna-lane.md"
 }
 
 test_reinstall_backs_up_managed_destinations() {
@@ -95,6 +97,26 @@ test_upgrade_backs_up_and_retires_orchestrator() {
   assert_not_exists "$home/agents/sdd-orchestrator.toml"
 }
 
+test_upgrade_removes_retired_reference_after_backup() {
+  # Break caught: deleting a source reference leaves stale instructions installed.
+  local home="$temp_root/retire-reference"
+  local expected="$temp_root/previous-reference.md"
+  mkdir -p "$home/skills/sdd-workflow/references"
+  printf 'retired external execution instructions\noriginal bytes\n' >"$expected"
+  cp "$expected" "$home/skills/sdd-workflow/references/luna-lane.md"
+  run_install "$home"
+  local backup
+  backup=$(find "$home/backups" -type d -name 'sdd-workflow-*' -print -quit)
+  [[ -n $backup ]] || fail 'expected a managed skill backup'
+  cmp -s "$expected" "$backup/skills/sdd-workflow/references/luna-lane.md" || fail 'retired reference backup lost original bytes'
+  assert_not_exists "$home/skills/sdd-workflow/references/luna-lane.md"
+  cmp -s "$source_root/skills/sdd-workflow/SKILL.md" "$home/skills/sdd-workflow/SKILL.md" || fail 'installed skill differs from source'
+  local agent
+  for agent in sdd-planner sdd-implementer-main sdd-implementer-high sdd-implementer-simple sdd-reviewer; do
+    cmp -s "$source_root/agents/$agent.toml" "$home/agents/$agent.toml" || fail "installed profile differs: $agent"
+  done
+}
+
 test_unmanaged_agents_are_unchanged() {
   # Break caught: install rewrites an agent it does not own.
   local home="$temp_root/unmanaged"
@@ -109,14 +131,17 @@ test_unmanaged_agents_are_unchanged() {
 test_dry_run_reports_retirement_and_writes_nothing() {
   # Break caught: dry-run hides retired-agent removal or changes the filesystem.
   local home="$temp_root/dry-run"
-  mkdir -p "$home/agents"
+  mkdir -p "$home/agents" "$home/skills/sdd-workflow/references"
   printf 'retired-agent\n' >"$home/agents/sdd-orchestrator.toml"
-  local before
+  printf 'retired-reference\n' >"$home/skills/sdd-workflow/references/luna-lane.md"
+  local before reference_before
   before=$(cksum "$home/agents/sdd-orchestrator.toml")
+  reference_before=$(cksum "$home/skills/sdd-workflow/references/luna-lane.md")
   run_install "$home" --dry-run >"$temp_root/dry-run.out"
   grep -F 'would retire sdd-orchestrator.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report retirement'
   [[ $(cksum "$home/agents/sdd-orchestrator.toml") == "$before" ]] || fail 'dry-run changed retired agent'
-  assert_not_exists "$home/skills/sdd-workflow"
+  [[ $(cksum "$home/skills/sdd-workflow/references/luna-lane.md") == "$reference_before" ]] || fail 'dry-run changed retired reference'
+  assert_not_exists "$home/skills/sdd-workflow/SKILL.md"
   assert_not_exists "$home/backups"
 }
 
@@ -125,6 +150,7 @@ test_incompatible_explicit_python_fails_before_validation_or_writes
 test_fresh_install
 test_reinstall_backs_up_managed_destinations
 test_upgrade_backs_up_and_retires_orchestrator
+test_upgrade_removes_retired_reference_after_backup
 test_unmanaged_agents_are_unchanged
 test_dry_run_reports_retirement_and_writes_nothing
-printf 'install tests passed\n'
+printf 'install tests passed (8 scenarios)\n'

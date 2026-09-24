@@ -26,13 +26,46 @@ The block must not be abbreviated in a retry or follow-up. Add action-specific s
 state: <current normative lifecycle state>
 transition: <proposed next state and triggering condition>
 sources: <source, access method, evidence or limitation>
-routing: <role or lane, task boundary, and evidence for the route>
+routing: <native role, task boundary, and evidence for the route>
 delegation: <native agent ID and reference to its latest Delegation Record, or none>
 gates: <independent planning review, successful cycle validation, frozen artifact baseline, and validity>
 blockers: <condition, evidence, impact, owner, and required resolution>
+user_attention: <none, or reference to an unavoidable User Attention Request>
 risks: <known risk, likelihood or impact, and mitigation>
 next action: <single accountable action and required gate>
 ```
+
+## Orchestrator Checkpoint
+
+Maintain this compact operational record in the root chat, with session-scoped runtime checkpoint storage when available. It is not a governed planning artifact: do not add it to `sdd-cycle.json`, change the approved artifact set, or write it into a consumer's planning package. Keep exact references to evidence rather than duplicating full transcripts.
+
+```text
+cycle_id: <exact current cycle identity and reference to its literal Cycle Identity Handoff>
+state: <current lifecycle state>
+baseline: <approved artifact identities, repository revision/diff identity, and review evidence>
+decisions: <explicit user decisions, scope limits, pauses, and documented assumptions>
+assignments: <task IDs, active/completed/blocked status, owning agent IDs, exact owned paths, and result references>
+dependencies: <completed and pending prerequisites, unavailable essential sources or tools>
+reviews: <review owner and verdict, open findings, conditioned checks, attempt counts, and recovery evidence>
+next_transition: <next allowed state, its remaining conditions, and accountable action>
+```
+
+Refresh after meaningful state changes and before compaction when possible. Recover the preserved identity and compare current baseline and agent status before resuming. Do not redispatch completed or still-active assignments merely because context was compacted. Missing state is recovered from authorized cycle evidence; it is not permission to guess a gate verdict or rediscover unrelated packages.
+
+## User Attention Request
+
+Use only when the unavoidable-user-owned-blocker predicate in [Lifecycle and Gates](lifecycle-and-gates.md) is satisfied. Internal role blockers and routine corrections use the normal result contracts instead. Do not ask for a plan approval or permission already supplied.
+
+```text
+blocker: <necessary action that cannot safely proceed>
+evidence: <exact source, observed failure, or unresolved material contradiction>
+attempted_recovery: <relevant source checks, safe alternatives, and internal corrections already tried>
+why_user: <why existing authority/evidence cannot resolve it and why the user's input is indispensable>
+required_input: <smallest specific decision, essential content, access, or authority needed>
+affected_scope: <work paused before the affected action and independent work that may still proceed>
+```
+
+Record the answer as a scoped cycle decision, revalidate any changed baseline, and resume automatically. Do not interpret an answer as approval of unrelated publishing, scope expansion, or residual risk.
 
 ## Delegation Record
 
@@ -66,11 +99,11 @@ artifacts: <resolved root plus complete generated artifact paths and purpose>
 evidence: <source or repository evidence mapped to requirement or decision>
 assumptions: <each assumption in the required four-line assumption format>
 routing evidence: <complexity, isolation, dependencies, owned paths, and independent checks>
-questions: <minimum material question, evidence reviewed, and why the answer is required>
+questions: <none, or unavoidable material question, evidence reviewed, and why only user input can resolve it>
 changed_paths: <exact SDD artifact paths written in this action, including .specify/feature.json when official speckit-specify created or updated it>
 cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, cycle ID, SpecKit root, primary source, each repeatable source ID, artifact directory, and exactly one new-cycle or expected-continuation identity>
 cycle_validation_result: <exit status plus concise stdout or stderr evidence>
-blockers: <unresolved condition, impact, and required decision or dependency>
+blockers: <unresolved condition, evidence, recovery tried, impact, and accountable next action>
 ```
 
 ## Implementation Brief
@@ -91,8 +124,8 @@ delivery contract: <Implementer Result fields, evidence location, and handoff re
 ```text
 changed paths: <exact paths changed by this delivery>
 behavior: <criterion-to-observed-behavior mapping>
-checks: <exact command or inspection and its result>
-blockers: <condition, evidence, impact, and required next decision>
+checks: <exact command or inspection, exit status/output evidence, and checked baseline>
+blockers: <condition, evidence, recovery tried, impact, and accountable next action>
 residual risk: <remaining risk, affected criterion, and mitigation or follow-up>
 ```
 
@@ -110,13 +143,13 @@ findings: <severity, affected criterion, evidence, and required correction>
 commands: <exact read-only command or inspection and result>
 cycle_validation_command: <exact validate_cycle.py command with manifest, expected workspace, cycle ID, SpecKit root, primary source, each repeatable source ID, artifact directory, and exactly one new-cycle or expected-continuation identity>
 cycle_validation_result: <exit status plus concise stdout or stderr evidence>
-conditioned checks: <required check not completed, reason, affected criteria, and retry condition>
+conditioned checks: <required check not completed, reason, affected criteria, accountable role, and retry condition>
 residual risk: <verified remaining risk and impact>
 status: <approved | corrections required | conditionally verified>
 ```
 
 Select exactly one Reviewer status:
 
-- `approved`: all required evidence and checks for the reviewed scope are complete and no correction finding remains.
-- `corrections required`: one or more findings require a change before approval.
-- `conditionally verified`: an environmental or access condition prevented a required check from completing; list it under `conditioned checks`. This status records incomplete verification and satisfies no approval gate.
+- `approved`: all required evidence and checks for the reviewed scope are complete and no correction finding remains. This is the Reviewer's verdict, not a user confirmation.
+- `corrections required`: one or more findings require a change before approval; the root chat routes bounded correction automatically.
+- `conditionally verified`: an environmental or access condition prevented a required check from completing; list it under `conditioned checks`. This status records incomplete verification and satisfies no approval gate. Resolve checks internally whenever the authorized runtime permits them.

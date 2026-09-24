@@ -1,0 +1,39 @@
+name: Validate SDD Workflow
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdd-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Check Python requirement
+        run: python3 -c 'import sys; assert sys.version_info >= (3, 11)'
+      - name: Delegation and autonomy regressions
+        run: python3 -m unittest discover -s tests -p 'test_delegation_policy.py' -v
+      - name: Validate distribution
+        run: python3 scripts/validate.py
+      - name: Full Python suite
+        run: python3 -m unittest discover -s tests -v
+      - name: Installer and upgrade tests
+        run: bash tests/test_install.sh
+      - name: Shell syntax and clean working tree
+        run: |
+          bash -n scripts/install.sh tests/test_install.sh
+          git diff --check
+          test -z "$(git status --porcelain)"

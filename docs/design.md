@@ -1,70 +1,41 @@
-# Rediseño de `sdd-workflow`: control en el chat y aislamiento por ciclo
+# SDD Workflow: agentes nativos y ejecución autónoma
 
-## Estado
+## Estado y alcance
 
-- Fecha: 2026-08-06; refinamiento vigente: 2026-09-23
-- Alcance: evolución global y reutilizable de `sdd-workflow`
-- Estado del diseño: aprobado por el usuario
-- Implementación: verificada e instalada globalmente
-- Evidencia de la implementación original (2026-08-06): 57 pruebas Python, pruebas del instalador, validadores de distribución y skill, sintaxis Bash, paridad byte a byte y smoke test del runtime instalado. El refinamiento de 2026-09-23 se integra por separado.
-- Backup de migración: `$CODEX_HOME/backups/sdd-workflow-20260806T131501Z-48525`
-- Motivo: una ejecución real permitió que el chat y un subagente compartieran la coordinación y reutilizó un paquete SpecKit de otra tarea, arrastrando tareas y revisiones históricas.
+Fecha del diseño vigente: 2026-09-24. Evolución autorizada por el usuario sobre el ciclo aislado existente. Este documento describe la distribución actual; el historial anterior permanece en Git. Los resultados de verificación corresponden al commit y a su ejecución de CI, no demuestran una instalación global ni una ejecución real de los modelos en el cliente del usuario.
 
-## Objetivos
+El objetivo es completar una tarea encargada mediante `sdd-workflow` sin confirmaciones rutinarias: planificación, revisión, implementación, corrección y verificación final. Solo requiere atención del usuario un bloqueo ineludible que necesite una decisión, información esencial, acceso o autoridad que el sistema no pueda obtener con la evidencia y permisos disponibles.
 
-1. Convertir el chat donde se invoca `sdd-workflow` en la única autoridad de coordinación y contacto con el usuario.
-2. Eliminar el agente nativo `sdd-orchestrator` y la doble capa de control.
-3. Crear un paquete SpecKit aislado para cada ciclo nuevo.
-4. Impedir que Planner y Reviewer lean o incorporen artefactos SDD de tareas anteriores.
-5. Reducir agentes, revisiones y preguntas rutinarias al usuario conservando la revisión independiente, validación, baseline congelado y verificación final.
+## Responsabilidades y perfiles
 
-## Principios normativos
+| Responsabilidad | Perfil | Modelo | Esfuerzo |
+| --- | --- | --- | --- |
+| Coordinación | Chat raíz; no es otro agente | gpt-6-sol | medium |
+| Planificación | sdd-planner | gpt-6-sol | high |
+| Implementación principal | sdd-implementer-main | gpt-6-sol | medium |
+| Implementación compleja | sdd-implementer-high | gpt-6-sol | high |
+| Implementación acotada | sdd-implementer-simple | gpt-6-luna | high |
+| Revisión independiente | sdd-reviewer | gpt-6-sol | high |
 
-1. El chat raíz es el Orquestador del ciclo. “Orquestador” pasa a ser un rol del chat, no un agente despachable.
-2. El chat coordina, conserva el estado, valida límites, aplica gates y habla con el usuario; no planifica en profundidad, revisa su propio trabajo ni implementa código.
-3. Planner y Reviewer usan GPT-6 Sol con esfuerzo high. Main, High y Simple usan GPT-6 Luna con esfuerzos medium, high y low, respectivamente.
-4. Sol medium será la recomendación operativa para el chat coordinador, pero la skill no fingirá que puede imponer el modelo de la sesión.
-5. Cada ciclo nuevo crea un directorio SpecKit nuevo y explícito. La feature activa anterior nunca decide el destino.
-6. Ningún artefacto SDD histórico es fuente de verdad para un ciclo nuevo.
-7. Reutilizar un paquete anterior exige una orden explícita de continuación y una identidad coincidente.
-8. Los límites de aislamiento se validan mediante contratos y un script determinista, no solo mediante instrucciones narrativas.
-9. La revisión se concentra en gates y riesgos, no en cada microtarea.
+Existen exactamente cinco agentes configurados, todos nativos. El chat raíz es la única autoridad de coordinación y contacto con el usuario; no despacha `sdd-orchestrator`. La recomendación de modelo del chat no implica que una skill cambie automáticamente el modelo de una sesión ya abierta.
 
-## Arquitectura de agentes
+Planner crea y corrige artefactos. Los implementadores trabajan exclusivamente en su alcance asignado. Reviewer permanece read-only y evalúa evidencia de forma independiente. El chat dirige el ciclo y comprueba límites, sin asumir la planificación profunda, implementación o revisión como alternativa a un rol no disponible. Solo el chat raíz despacha agentes; no existe delegación recursiva ni un modo de ejecución especial por el nombre del modelo.
 
-El conjunto canónico se reduce a cinco agentes:
+Simple recibe trabajo aislado, bien especificado, con dependencias satisfechas y comprobación directa. Main recibe trabajo no trivial, integración y clasificaciones dudosas. High sustituye a Main cuando la complejidad o un fallo de razonamiento lo justifique. Main y High nunca trabajan simultáneamente en el mismo ciclo. Se permiten como máximo dos Simple concurrentes y un principal, siempre con propiedad exclusiva y no solapada de archivos entre todos los escritores.
 
-```text
-sdd-planner            GPT-6 Astra / low
-sdd-implementer-main   GPT-5.6 Terra / medium
-sdd-implementer-high   GPT-5.6 Terra / high
-sdd-implementer-simple GPT-5.6 Terra / low
-sdd-reviewer           GPT-6 Astra / low
-```
+## Autonomía y límites
 
-`sdd-orchestrator.toml` se elimina del repositorio y de la instalación global. La referencia metodológica del Orquestador permanece dentro de la skill, dirigida expresamente al chat raíz.
+La solicitud original autoriza el ciclo completo dentro de su alcance. No se pide otra aprobación del plan, una frase de confirmación, permiso para corregir un defecto ni una elección rutinaria del implementador. Una solicitud explícita de solo planificación, pausa, cancelación o límite adicional conserva su autoridad.
 
-### Contrato del chat raíz
+El chat resuelve internamente los detalles inferibles, instrucciones incompletas, errores corregibles, enrutamiento y obtención de evidencia de pruebas. Ante tres ciclos fallidos de la misma condición, conserva diagnóstico e intentos y cambia de estrategia mediante un escalado interno fundamentado. No reinicia el contador renombrando el defecto ni repite indefinidamente el mismo intento. Un timeout de espera no es un fallo del agente.
 
-Al invocar `sdd-workflow`, el chat debe:
+La atención del usuario exige simultáneamente: una acción necesaria bloqueada, imposibilidad de resolverla de forma segura con evidencia y recuperación autorizada, y una entrada indispensable que deba aportar el usuario. Se solicita antes de actuar sobre la parte afectada y se identifica la decisión mínima. Un bloqueo puramente técnico sin decisión útil para el usuario se comunica con evidencia, no como una petición vacía de aprobación. El trabajo independiente no afectado puede continuar cuando sus gates y límites lo permitan.
 
-- asumir directamente el rol de Orquestador;
-- no crear, despachar ni delegar la coordinación completa a otro agente;
-- validar acceso a fuentes y dependencias;
-- crear la identidad del ciclo antes de pedir trabajo al Planner;
-- proporcionar al Planner rutas y fuentes exactas;
-- validar lecturas y escrituras de artefactos;
-- solicitar la revisión de planificación;
-- congelar el baseline aprobado;
-- iniciar implementación automáticamente después de una revisión independiente `approved`, la validación exitosa del ciclo y el congelado del baseline;
-- asignar implementación y revisiones según el presupuesto operativo;
-- informar al usuario si surge un bloqueo esencial que no puede resolver con la evidencia disponible, o al terminar; no pedir confirmación del plan ni de elecciones rutinarias.
-
-Si no puede invocar un rol obligatorio, debe detener el ciclo. No puede asumir el trabajo del Planner, Reviewer o implementador para ahorrar una llamada.
+La autonomía no amplía alcance, permisos ni acceso. No permite inventar reglas de negocio, omitir validaciones, debilitar el sandbox, ignorar aprobaciones impuestas por la plataforma, aceptar riesgos por el usuario ni publicar o desplegar sin autoridad aplicable. Tampoco vuelve a pedir un permiso ya concedido para la misma acción y alcance.
 
 ## Identidad y aislamiento del ciclo
 
-Antes de leer cualquier artefacto bajo `specs/`, el chat crea:
+El chat establece antes de cualquier lectura de planificación:
 
 ```text
 cycle_id
@@ -73,262 +44,75 @@ speckit_root
 primary_source
 source_ids
 artifact_directory
-artifacts
-continuation_of
+identity_mode
 ```
 
-- `workspace_root` es el proyecto real seleccionado para la sesión.
-- `speckit_root` es la raíz técnica que contiene `.specify/`; puede ser superior al workspace.
-- `primary_source` identifica la tarea principal. Para Jira es su clave exacta.
-- `source_ids` contiene la tarea principal y únicamente sus subtareas o fuentes relacionadas autorizadas para ese ciclo.
-- `artifact_directory` es nuevo y exclusivo.
+`workspace_root` identifica el producto; `speckit_root` la raíz de `.specify/`. No se asume que ambas coincidan. Cada nueva tarea obtiene un directorio ausente y exclusivo, relativo a `speckit_root`, y su propio manifiesto `sdd-cycle.json` con esquema 1. El manifiesto contiene la identidad, el inventario dinámico `artifacts` y `continuation_of`.
 
-Ejemplo genérico:
+El Planner crea primero el manifiesto y ejecuta `speckit-specify` con `SPECIFY_FEATURE_DIRECTORY` igual al directorio asignado. `.specify/feature.json` se trata únicamente como salida del bootstrap, nunca como entrada para seleccionar una tarea antigua. Una continuación exige solicitud explícita y coincidencia de directorio, workspace y fuente; no se deduce del nombre de una rama o de una feature activa.
+
+Los artefactos generados pueden incluir especificación, checklists, plan, investigación, modelo de datos, contratos, quickstart y tareas. Se inventarían todos los archivos oficiales efectivamente generados. Planner y Reviewer reciben rutas exactas, reportan `artifact_reads` y no descubren ni importan paquetes históricos. El código y pruebas actuales sí son evidencia del producto; las planificaciones de otras tareas no lo son.
+
+Antes del gate de implementación solo se escribe en el paquete asignado. La única excepción es el archivo exacto `.specify/feature.json` escrito por el `speckit-specify` oficial, que debe figurar en `changed_paths` y en el baseline. No se concede una excepción general a `.specify/`.
+
+## Fuentes y preguntas materiales
+
+La prioridad es: decisiones explícitas del usuario, políticas aplicables del repositorio, Jira o descripción funcional, Figma para lo visual dentro del alcance, código y pruebas actuales, y supuestos documentados. Un cambio expresamente pedido no se rechaza porque una prueba anterior represente el comportamiento antiguo.
+
+Se intenta primero el conector correspondiente y después una sesión autenticada cuando esté autorizada y sea necesaria. La ausencia de una fuente visual opcional se registra como limitación. No se inventa contenido inaccesible. Las elecciones de estilo o implementación inferibles se resuelven mediante el formato Assumption, Reason, Risk if wrong y Validation needed. Una contradicción material no resuelta sobre retención, permisos, contratos u otro comportamiento necesita la entrada indispensable antes de decidirla.
+
+## Validación y flujo
+
+Cada invocación de `validate_cycle.py` recibe valores externos del chat, sin reconstruir las expectativas a partir del propio manifiesto:
 
 ```text
-specs/20260806-143500-mobile-app-team-123-feature-name/
+--manifest
+--expected-workspace
+--expected-cycle-id
+--expected-speckit-root
+--expected-source
+--expected-source-id (una vez por cada fuente completa)
+--expected-artifact-directory
+--new-cycle O --expected-continuation-of
 ```
 
-El directorio contiene `sdd-cycle.json`:
+El validador comprueba identidades, contención, inventario, fuentes autorizadas, referencias cruzadas, symlinks y numeración de tareas. Se mantiene sin cambios funcionales en esta actualización. Un fallo bloquea la transición afectada y se intenta resolver por el rol responsable; no convierte automáticamente la situación en una pregunta al usuario.
 
-```json
-{
-  "schema_version": 1,
-  "cycle_id": "20260806-143500",
-  "workspace_root": "<resolved-workspace>",
-  "speckit_root": "<resolved-speckit-root>",
-  "primary_source": "TEAM-123",
-  "source_ids": ["TEAM-123"],
-  "artifact_directory": "specs/20260806-143500-mobile-app-team-123-feature-name",
-  "artifacts": ["spec.md", "checklists/requirements.md"],
-  "continuation_of": null
-}
-```
-
-El manifiesto es un artefacto gobernado de `sdd-workflow`, aunque no sea generado por SpecKit.
-`artifacts` contiene rutas relativas al propio `artifact_directory` y se actualiza
-después de cada acción oficial de SpecKit. El validador exige que coincida con
-los archivos gobernados que existen realmente en esa carpeta.
-
-### Ciclo nuevo
-
-Para toda solicitud nueva:
-
-1. Ignorar `.specify/feature.json` como entrada de selección.
-2. No abrir `spec.md`, `plan.md`, `tasks.md`, checklists, contratos ni otros artefactos de carpetas existentes.
-3. Generar un `cycle_id` y un directorio ausente.
-4. Pasar el directorio exacto a `speckit-specify` mediante `SPECIFY_FEATURE_DIRECTORY`.
-5. Permitir que `speckit-specify` actualice `.specify/feature.json` únicamente como salida de bootstrap.
-6. Verificar que el archivo activo apunta al directorio recién creado.
-7. Exigir que `tasks.md` pertenezca solo al ciclo y empiece su propia numeración.
-
-No se permite seleccionar una feature porque su nombre, tema o código parezcan relacionados. Una feature activa, una rama parecida o una carpeta semánticamente próxima no prueban continuidad.
-
-### Continuación explícita
-
-Solo se reutiliza un paquete cuando el usuario indica expresamente que desea continuar ese ciclo.
-
-Antes de abrir sus artefactos, el chat valida `sdd-cycle.json`:
-
-- mismo `workspace_root`;
-- mismo `primary_source`;
-- ruta exacta y no ambigua;
-- manifiesto válido;
-- ausencia de colisiones o identidades contradictorias.
-
-Si falta el manifiesto, existen varias candidatas o la identidad no coincide, el chat solicita la ruta exacta o crea un ciclo nuevo tras la decisión del usuario. `.specify/feature.json` por sí solo nunca autoriza una continuación.
-
-## Prohibición de contaminación
-
-Planner y Reviewer reciben rutas exactas. No pueden descubrir contexto documental mediante búsquedas sobre la raíz de `specs/`.
-
-Queda prohibido:
-
-- ejecutar `find`, `rg`, globs o recorridos equivalentes sobre todas las features;
-- leer artefactos SDD fuera de `artifact_directory`;
-- copiar requisitos, dependencias o tareas de otro paquete;
-- añadir nuevas tareas al `tasks.md` de una tarea anterior;
-- ampliar `source_ids` sin decisión explícita o relación de subtarea confirmada desde la fuente actual;
-- tratar artefactos históricos como evidencia del comportamiento solicitado.
-
-El código y los tests del workspace sí pueden consultarse como contexto real del producto. La prohibición afecta a artefactos de planificación histórica, no a la arquitectura vigente del repositorio.
-
-Los contratos de Planner y Reviewer incorporan:
+El camino normal es:
 
 ```text
-artifact_reads
-changed_paths
-source_ids
-artifact_directory
+Intake -> Planner -> Reviewer de planificación
+       -> approved + validación + baseline congelado
+       -> implementación nativa y pruebas
+       -> Reviewer final con speckit-analyze -> complete
 ```
 
-Una ruta de lectura o escritura fuera del paquete autorizado invalida el resultado y detiene el gate.
+La secuencia SpecKit conserva specify, clarify solo cuando sea indispensable, checklist, plan, tasks y analyze read-only. Las correcciones de artefactos son acciones separadas del Planner. Una corrección acotada vuelve al mismo Reviewer para revisión del delta; un cambio material requiere revisión completa nueva.
 
-## Validador de ciclo
+El gate de implementación se abre automáticamente con revisión independiente `approved`, validación exitosa y baseline intacto. `approved` es el veredicto del Reviewer, no una frase que deba escribir el usuario. Cambiar cualquier artefacto congelado invalida su revisión; se revisa, valida y congela el nuevo conjunto antes de reanudar automáticamente.
 
-La skill incluirá `scripts/validate_cycle.py`. Su responsabilidad será comprobar de forma determinista:
+Los lotes normales no generan una revisión por microtarea. Los cambios de alto riesgo, seguridad, persistencia o migración, contratos API y código compartido crítico requieren revisión intermedia. El Reviewer final unifica reconciliación y veredicto integrado. Sus correcciones vuelven a esa revisión final tras las comprobaciones correspondientes, sin añadir una revisión intermedia redundante.
 
-- esquema e identidad de `sdd-cycle.json`;
-- contención de todos los artefactos bajo `artifact_directory`;
-- coincidencia entre workspace, SpecKit root, fuente y paquete;
-- ausencia de enlaces o referencias a otros directorios `specs/`;
-- ausencia de claves Jira no incluidas en `source_ids`, salvo referencias permitidas y documentadas;
-- coherencia de la lista de artefactos;
-- identidad propia de `tasks.md` y ausencia de numeración heredada;
-- destino actual de `.specify/feature.json` después del bootstrap.
+Si falta trabajo ya definido en tareas, se corrige implementación. Si falta cobertura de un requisito existente en `tasks.md`, Planner aplica el contrato `speckit-tasks` y se renueva la revisión del baseline. `speckit-converge` solo es compatible cuando `speckit-implement` ejecutó las tareas actuales o un contrato futuro admite expresamente el ejecutor empleado. No se incorporan mejoras opcionales como requisitos de convergencia.
 
-Se ejecutará como mínimo:
+Reviewer no ejecuta comprobaciones que escriban. Tras abrirse implementación, el chat encarga esas pruebas al implementador permitido y devuelve comando, salida, código de salida e identidad del baseline para evaluación independiente. La comprobación pendiente sigue siendo `conditionally verified` hasta obtener evidencia suficiente; no se cambia el sandbox ni se considera una aprobación.
 
-1. después de generar o corregir la planificación;
-2. antes de la revisión de planificación;
-3. antes de congelar el baseline;
-4. antes de despachar implementación;
-5. durante la reconciliación final.
+## Contexto y recuperación
 
-Un fallo del validador no es `conditionally verified`: es una violación de aislamiento y bloquea el ciclo.
+La delegación utiliza controles reales de perfiles; escribir un nombre en el prompt no configura el modelo. Los encargos autosuficientes empiezan sin historial paterno mediante `fork_context=false` o `fork_turns="none"`, según el esquema expuesto, nunca ambos. Toda herencia excepcional necesita motivo y límites de ciclo.
 
-## Flujo eficiente
+El Delegation Record separa configuración solicitada de metadatos observados. La ausencia de telemetría se registra como `not verified`, sin inventar valores ni añadir una aprobación. Una incompatibilidad confirmada sí requiere recuperación o bloqueo de la asignación afectada.
 
-El camino normal será:
+El Orchestrator Checkpoint conserva identidad, estado, baseline, decisiones, asignaciones, dependencias, revisiones e intentos y próxima transición. Reside en el chat o almacenamiento de sesión disponible, fuera del conjunto de artefactos congelados. Tras compactación se recuperan evidencia y agentes existentes, sin reiniciar trabajo completado o todavía activo.
 
-```text
-Chat raíz / Orquestador
-→ Planner
-→ Reviewer de planificación
-→ revisión `approved` + validación del ciclo + baseline congelado
-→ Main
-→ Reviewer final con speckit-analyze
-→ complete
-```
+## Distribución y actualización
 
-### Planificación
+La distribución mantiene 25 archivos: cinco agentes, siete referencias, scripts, documentación, pruebas y el workflow de CI. El instalador valida antes de escribir, respalda íntegramente la skill gestionada y los agentes existentes y reemplaza la carpeta gestionada completa. Los archivos retirados no quedan activos; sus bytes se conservan en el backup. El antiguo `sdd-orchestrator.toml` sigue retirándose por su ruta exacta y los agentes no gestionados no se modifican.
 
-- Un Planner genera el paquete completo.
-- Un Reviewer realiza la revisión completa.
-- Las correcciones acotadas vuelven al Planner.
-- El mismo Reviewer puede hacer una revisión focalizada del delta.
-- Se repite la revisión completa únicamente cuando cambian materialmente el alcance, la arquitectura o los criterios.
+No se añaden dependencias de ejecución al consumidor aparte de las existentes. El workflow de GitHub usa permisos de lectura, no persiste credenciales del checkout y ejecuta verificaciones de la distribución en un entorno temporal. Publicar una PR no instala la skill en el equipo del usuario.
 
-### Implementación
+## Criterios y límites de verificación
 
-- Main es el ejecutor principal por defecto y recibe lotes coherentes, no una microtarea por agente.
-- Simple nativo es la ruta por defecto para trabajo independiente, simple y aislado; solo exige `parallel-safe` cuando coincide con otra asignación. Una tarea visible de Luna requiere petición explícita del usuario y una ventaja concreta frente a Simple.
-- High sustituye a Main ante complejidad demostrada; no trabaja como segundo implementador principal.
-- Cada implementador verifica su trabajo, pero no se crea un Reviewer tras cada microtarea.
+Se comprueban la matriz de modelos en TOML y validador, las reglas de autonomía y recuperación, la ausencia del mecanismo externo retirado, la identidad de ciclo, los gates independientes, la revisión por riesgo y la actualización con backup y eliminación de archivos obsoletos. Se conservan pruebas negativas del validador para inventarios, identidades, referencias, fuentes y codificación inválidos.
 
-### Revisiones obligatorias durante implementación
-
-Se requiere revisión independiente:
-
-- al terminar un lote de riesgo alto;
-- tras cambios de seguridad, persistencia, contratos API o código compartido crítico;
-- antes y después de integrar una entrega de Luna;
-- sobre el resultado final completo.
-
-Un lote normal puede avanzar con la verificación del implementador hasta la revisión final.
-
-### Reconciliación final
-
-Un único Reviewer final ejecuta `speckit-analyze` read-only y, en la misma revisión, comprueba fuentes, artefactos, código, tests y criterios.
-
-- Trabajo pendiente ya presente en `tasks.md`: vuelve al implementador.
-- Trabajo aprobado ausente de `tasks.md`: vuelve al Planner, invalida el baseline, exige nueva revisión independiente y validación; después continúa implementación automáticamente.
-- Resultado completo: `approved` final.
-
-No se ejecuta otra revisión completa idéntica después de esta reconciliación.
-
-## Gates conservados
-
-El rediseño no elimina:
-
-- revisión independiente de la planificación;
-- congelación del conjunto aprobado;
-- apertura automática de implementación tras revisión independiente, validación exitosa y congelado del baseline;
-- invalidación del gate cuando cambian artefactos gobernados;
-- revisión independiente final;
-- distinción entre `approved`, `corrections required` y `conditionally verified`.
-
-La simplificación reduce duplicación, no autoridad ni trazabilidad.
-
-## Manejo de errores
-
-- Feature activa de otra tarea: ignorar y crear un ciclo nuevo.
-- Carpeta antigua con nombre similar: ignorar.
-- Colisión de directorio: generar otro `cycle_id`; nunca fusionar.
-- Continuación sin manifiesto válido: bloquear y pedir la ruta exacta.
-- Continuación con workspace o fuente distintos: rechazar.
-- Referencia inesperada a otro ticket: detener antes del gate.
-- Lectura de artefactos externos al ciclo: invalidar el resultado.
-- Imposibilidad de invocar un rol obligatorio: bloquear sin asumirlo desde el chat.
-- Tres ciclos de la misma condición bloqueante: escalar al usuario.
-
-## Distribución y migración
-
-El repositorio conserva su estructura portátil, con estos cambios:
-
-- eliminar `agents/sdd-orchestrator.toml`;
-- mantener cinco agentes canónicos;
-- mantener `references/orchestrator.md` como contrato del chat raíz;
-- añadir `skills/sdd-workflow/scripts/validate_cycle.py`;
-- actualizar `SKILL.md`, referencias, README, instalador, validador y pruebas;
-- actualizar la documentación de arquitectura y plan.
-
-El instalador:
-
-1. valida antes de escribir;
-2. guarda backup del agente Orquestador instalado;
-3. elimina únicamente `sdd-orchestrator.toml` gestionado;
-4. instala la skill y los cinco agentes canónicos;
-5. no modifica otros agentes globales;
-6. permite dry-run y restauración manual desde backup.
-
-La distribución seguirá teniendo un inventario exacto de archivos. Al retirar un TOML y añadir el validador runtime, el recuento esperado permanece estable salvo una decisión posterior justificada.
-
-## Estrategia de pruebas
-
-La modificación seguirá RED→GREEN→REFACTOR para skills y scripts.
-
-Escenarios mínimos:
-
-1. El chat invoca SDD y no crea un Orquestador subagente.
-2. `.specify/feature.json` apunta a una tarea anterior.
-3. Existe una carpeta histórica semánticamente parecida.
-4. Dos proyectos comparten raíz Git o SpecKit.
-5. Un ciclo nuevo obtiene un paquete y `tasks.md` propios.
-6. Una continuación explícita del mismo workspace y fuente reutiliza solo su carpeta.
-7. Una continuación con identidad diferente se rechaza.
-8. Planner y Reviewer no leen artefactos externos al ciclo.
-9. El validador rechaza referencias cruzadas y claves Jira no autorizadas.
-10. Un lote normal no genera una revisión por microtarea.
-11. Un lote crítico conserva la revisión independiente.
-12. El camino normal usa Planner, Reviewer de planificación, Main y Reviewer final.
-13. La actualización elimina solo el antiguo agente gestionado y preserva todos los demás.
-
-Las pruebas de comportamiento conservarán prompts, identidades, resultados crudos y puntuación manual. Los controles que ya se comporten correctamente se clasificarán como no-regresión, no como causalidad RED→GREEN.
-
-## Fuera de alcance
-
-- Modificar las skills oficiales de SpecKit.
-- Convertir Luna en agente nativo.
-- Permitir planificación histórica automática entre tickets.
-- Eliminar la revisión independiente de planificación o la validación del ciclo.
-- Hacer que la skill afirme controlar el modelo del chat.
-- Publicar cambios en el remoto sin autorización explícita.
-
-## Criterios de aceptación
-
-1. La invocación de `sdd-workflow` deja la coordinación en el chat raíz y no despacha `sdd-orchestrator`.
-2. El repositorio y la instalación global contienen exactamente cinco agentes SDD canónicos.
-3. Todo ciclo nuevo crea `sdd-cycle.json` y un `SPECIFY_FEATURE_DIRECTORY` ausente y explícito.
-4. `.specify/feature.json` nunca selecciona por sí solo una feature anterior.
-5. Planner y Reviewer no leen artefactos de otros ciclos.
-6. Una continuación exige orden explícita y coincidencia de workspace y fuente.
-7. `validate_cycle.py` bloquea contaminación, referencias cruzadas e identidad incoherente.
-8. `tasks.md` no contiene tareas heredadas de otro paquete.
-9. El flujo normal no crea agentes ni revisiones por microtarea.
-10. Los cambios críticos, Luna y el resultado final conservan revisión independiente.
-11. El Reviewer final unifica reconciliación y verificación completa.
-12. La revisión independiente, validación, congelado del baseline e invalidación ante cambios permanecen vigentes, sin pedir al usuario que apruebe el plan.
-13. El instalador respalda y retira solo el antiguo Orquestador gestionado.
-14. La suite RED/GREEN, el validador de distribución y el validador oficial pasan.
-15. La instalación global coincide con la fuente y los agentes no gestionados permanecen intactos.
+La suite de políticas analiza texto y configuración. Los tests de validador e instalación ejecutan scripts reales en copias temporales. CI no demuestra selección efectiva de modelo, obediencia de subagentes, comportamiento después de compactación, calidad de código generado ni ahorro de tokens. Esas propiedades requieren una prueba posterior en el runtime real con tareas comparables y evidencia vinculada a cada agente.
