@@ -85,9 +85,9 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertIn("changed_paths", planner)
         self.assertIn("changed_paths", orchestrator)
 
-    def test_external_executor_convergence_is_compatible(self) -> None:
-        # Break caught: convergence invokes speckit-converge after a native or
-        # Luna executor even though its contract requires speckit-implement.
+    def test_native_executor_convergence_is_compatible(self) -> None:
+        # Break caught: convergence invokes speckit-converge after a native
+        # executor even though its contract requires speckit-implement.
         skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
         planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
             encoding="utf-8"
@@ -205,25 +205,29 @@ class ValidateDistributionTests(unittest.TestCase):
             self.assertIn(trigger, reviewer_agent)
         self.assertIn("Intermediate-risk batch review", reviewer)
 
-    def test_luna_keeps_pre_and_post_integration_reviews(self) -> None:
-        # Break caught: Luna's isolation and integration safeguards are folded
-        # into the normal review budget.
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
-            encoding="utf-8"
-        )
-        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
-            encoding="utf-8"
-        )
+    def test_review_contract_is_native_and_risk_based_for_every_model(self) -> None:
+        # Break caught: the removed model-specific external reviews reappear.
+        for path in (
+            "skills/sdd-workflow/references/orchestrator.md",
+            "skills/sdd-workflow/references/reviewer.md",
+            "agents/sdd-reviewer.toml",
+        ):
+            with self.subTest(path=path):
+                content = (self.root / path).read_text(encoding="utf-8")
+                self.assertNotIn("Luna pre-integration", content)
+                self.assertNotIn("Luna post-integration", content)
+                self.assertNotIn("## Luna Reviews", content)
+                self.assertIn("high-risk batch", content)
+                self.assertIn("final review", content.lower())
 
-        self.assertIn("Luna pre-integration", orchestrator)
-        self.assertIn("Luna post-integration", orchestrator)
-        self.assertIn("Before integration", reviewer)
-        self.assertIn("After Main integrates", reviewer)
-        self.assertIn("Luna pre-integration", reviewer_agent)
-        self.assertIn("Luna post-integration", reviewer_agent)
+    def test_retired_external_reference_is_rejected_by_distribution_validator(self) -> None:
+        # Break caught: an old managed reference silently re-enters the package.
+        retired = self.root / "skills/sdd-workflow/references/luna-lane.md"
+        retired.write_text("# Obsolete external execution contract\n", encoding="utf-8")
+        result = self.validate()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("unexpected distribution file", result.stderr)
+        self.assertIn("luna-lane.md", result.stderr)
 
     def test_final_reviewer_combines_speckit_analyze_and_final_verdict(self) -> None:
         # Break caught: reconciliation schedules a duplicate whole-package

@@ -1,140 +1,185 @@
 # SDD Workflow
 
-`sdd-workflow` is a portable Codex skill for a governed
-Specification-Driven Development lifecycle. The invoking root chat coordinates planning,
-independent review, validation-controlled implementation, bounded delivery, and
-final verification. SpecKit owns the planning artifacts; this package owns
-the workflow rules and role definitions.
+`sdd-workflow` is a portable Codex skill for an autonomous, governed
+Specification-Driven Development lifecycle. The invoking root chat coordinates
+planning, independent review, validated implementation, corrections, and final
+verification. SpecKit owns the planning artifacts; this package owns workflow
+rules and native role definitions.
 
 ## Roles
 
-| Role | Purpose |
-| --- | --- |
-| `sdd-planner` | Creates and corrects the planning artifact set. |
-| `sdd-implementer-main` | Delivers normal non-trivial work and integrations. |
-| `sdd-implementer-high` | Replaces Main for explicitly escalated complex work. |
-| `sdd-implementer-simple` | Delivers small, isolated, dependency-ready work. |
-| `sdd-reviewer` | Independently reviews plans, deliveries, convergence, and final output. |
+| Role | Model | Effort | Purpose |
+| --- | --- | --- | --- |
+| Root chat / Orchestrator | `gpt-6-sol` | `medium` | Owns coordination, lifecycle, and user contact. |
+| `sdd-planner` | `gpt-6-sol` | `high` | Creates and corrects the planning artifact set. |
+| `sdd-implementer-main` | `gpt-6-sol` | `medium` | Delivers non-trivial work, integrations, and Simple corrections. |
+| `sdd-implementer-high` | `gpt-6-sol` | `high` | Replaces Main for evidenced complex work. |
+| `sdd-implementer-simple` | `gpt-6-luna` | `high` | Delivers isolated, dependency-ready work with direct checks. |
+| `sdd-reviewer` | `gpt-6-sol` | `high` | Independently reviews planning, risk-triggered batches, and final output. |
 
-Planner and Reviewer use `gpt-6-sol` with `high` reasoning effort. Main, High, and
-Simple use `gpt-6-luna` with `medium`, `high`, and `low` effort respectively.
-The distribution validator enforces these canonical settings.
+There are five configured native agents. The root chat is the sole coordinator,
+not a sixth agent: do not dispatch `sdd-orchestrator`. Its model is a session
+recommendation; the skill cannot switch the active root model merely by naming
+it. The distribution validator enforces the five TOML profiles.
 
-The root chat is the sole coordination and user-contact authority; it performs
-the Orchestrator role and does not dispatch a second Orchestrator agent. Use
-`gpt-5.6-sol` at medium reasoning effort for that root-chat coordination when
-available.
+Simple describes the task's complexity, not a requirement for low effort.
+Use it for well-specified, isolated changes following existing patterns. Use Main
+when non-trivial engineering decisions remain or isolation is uncertain. High
+replaces Main, never runs alongside it. Up to two Simple assignments may run
+concurrently when dependencies and exclusive paths permit it. All writers must
+have non-overlapping ownership. Only the root chat dispatches agents.
 
-Implementation starts automatically after an independent planning review returns
-`approved`, cycle validation passes, and the reviewed artifact baseline is frozen.
-The workflow does not ask the user to approve the plan.
+## Automatic execution
+
+A task submitted to `sdd-workflow` authorizes the complete in-scope cycle unless
+the user explicitly requests planning only, pauses, cancels, or imposes a narrower
+limit. The normal path is:
+
+```text
+Intake -> Planner -> independent planning review
+       -> successful cycle validation and frozen baseline
+       -> native implementation and focused verification
+       -> independent final review with speckit-analyze -> complete
+```
+
+Implementation begins automatically after the independent Reviewer returns
+`approved`, cycle validation passes, and the exact reviewed baseline is frozen.
+The workflow does not ask the user to approve the plan or write a confirmation
+phrase. Corrections, verification handoffs, task-coverage repairs, re-reviews, and
+internal routing also proceed automatically within the requested scope.
+
+An internal `approved` verdict is still required; incomplete verification is not
+approval. Changed planning artifacts invalidate their baseline and return through
+review and validation before implementation resumes automatically. Normal batches
+use implementer checks until final review; intermediate independent reviews apply
+only to the documented risk categories.
+
+The root chat requests user attention only for an unavoidable blocker: a necessary
+action cannot safely proceed, available evidence and authorized recovery cannot
+resolve it, and an essential decision, source, access, or authority must come from
+the user. It asks before the affected action and identifies the smallest required
+input. Retry counts and routine technical choices do not create approval gates.
+After three unsuccessful cycles for the same condition, diagnose and escalate
+internally instead of repeating the same failing strategy. Report an irreducible
+technical blocker honestly when the user has no actionable decision.
+
+Autonomy preserves scope, independent verification, source isolation, explicit
+user constraints, access controls, and sandbox protections. It does not silently
+authorize publication, deployment, destructive changes, or acceptance of risk.
+Existing authority for the same action and scope is not requested again.
 
 ## Efficient delegation
 
 The [spawn policy](skills/sdd-workflow/references/orchestrator.md#agent-spawn-policy)
-keeps the canonical role profiles, review boundaries, role ownership, and
-concurrency limits. Select the actual configured role through supported
-runtime controls, not merely by naming a model in the task prompt.
+requires supported runtime controls to select the actual configured role.
+Writing a model name inside a task prompt is not configuration.
 
-Self-contained native assignments start with a complete brief and no parent
-conversation history. Inspect the available tool schema: use
-`fork_context=false` where supported or `fork_turns="none"` on that interface,
-never both. Inherit history only for a recorded task-specific need within the
-cycle boundary. Keep the same Reviewer for bounded delta corrections, and do
-not interrupt active agents to request routine progress.
+Self-contained assignments receive a complete bounded brief without parent
+history. Inspect the exposed tool schema: use `fork_context=false` where
+supported or `fork_turns="none"` on that interface, never both. Inherit history
+only for a recorded task-specific need within the cycle boundary. Keep the same
+Reviewer for bounded delta corrections. Do not interrupt active agents merely
+because a wait timed out or to request routine progress.
 
-A compact [Delegation Record](skills/sdd-workflow/references/contracts.md#delegation-record)
-in the root chat separates requested configuration from runtime-observed model
-and effort. Missing metadata is `not verified`, not guessed and not a new
-approval gate. Unsupported required profiles and confirmed mismatches are
-reported rather than silently replaced. The record does not create a new
-planning artifact. Visible Luna is used only when the current request explicitly
-selects it; an approved pre-integration review and unchanged target baseline let
-Main integrate automatically, followed by an independent post-integration review.
+The [Delegation Record](skills/sdd-workflow/references/contracts.md#delegation-record)
+separates requested settings from runtime-observed model and effort. Unavailable
+metadata is `not verified`; it is not guessed and does not create an approval
+gate. Confirmed mismatches or unsupported required profiles are reported and
+recovered through supported controls, not silently substituted.
 
-These are workflow instructions, not a runtime interceptor. The regression
-tests check their presence and contracts, not a live Codex execution or usage
-savings. Verify actual selection and context behavior in the installed runtime.
+The [Orchestrator Checkpoint](skills/sdd-workflow/references/contracts.md#orchestrator-checkpoint)
+keeps the current cycle, baseline, decisions, assignments, dependencies, reviews,
+and next transition recoverable in the root chat or session-scoped runtime
+storage. It does not modify frozen planning artifacts. After compaction, recover
+evidence and existing owners rather than redispatching completed or active work.
+
+These are workflow instructions, not a runtime interceptor. The regression tests
+check their presence and contracts, not a live Codex execution or usage savings.
+Verify actual model selection, effort, context handling, and runtime behavior in
+the installed client. No cost or quality improvement is claimed from static tests.
 
 ## Requirements
 
-- Bash
-- Python 3.11 or newer (the installer accepts `SDD_PYTHON` for an explicit
-  compatible interpreter)
-- Python's `tomllib` module
-- PyYAML when the optional official skill validator is available
+- Bash and Python 3.11 or newer, including `tomllib`; use `SDD_PYTHON` to select a
+  compatible interpreter explicitly.
+- PyYAML when the optional official skill validator is available.
 - Installed SpecKit skills: `speckit-specify`, `speckit-clarify`,
-  `speckit-checklist`, `speckit-plan`, `speckit-tasks`, and
-  `speckit-analyze`
+  `speckit-checklist`, `speckit-plan`, `speckit-tasks`, and `speckit-analyze`.
+- A Codex runtime that exposes the configured native roles and supported model,
+  effort, and delegation controls. Missing effective metadata alone is not proof
+  of incompatibility.
 
-`speckit-converge` is conditional, not a universal runtime dependency. Use it
-only when `speckit-implement` executed the current task list, or when a future
-converge contract explicitly supports the executor that produced the current
-implementation. Native SDD and Luna deliveries normally repair missing task
-coverage through the `speckit-tasks` contract.
+`speckit-converge` is conditional. Use it only when `speckit-implement` executed
+the current task list or a future converge contract explicitly supports the
+actual executor. Native SDD deliveries normally repair missing approved-scope
+task coverage through the `speckit-tasks` contract.
 
-The workflow also requires the applicable Superpowers practices when their
-condition is reached: `test-driven-development` for implementation changes,
-`systematic-debugging` for unexpected behavior or failures,
-`receiving-code-review` when acting on review findings,
-`verification-before-completion` before success claims, and
-`dispatching-parallel-agents` when independent work is actually parallelized.
+The applicable Superpowers practices remain required when their conditions occur:
+`test-driven-development`, `systematic-debugging`, `receiving-code-review`,
+`verification-before-completion`, and `dispatching-parallel-agents`. They do not
+create a competing planning workflow, recursive delegation, or another user gate.
 
 For source-backed requests, provide a Jira connector or authenticated browser
-session when Jira is the authoritative source. Provide Figma access in the same
-way when visual or interaction evidence is essential. An inaccessible optional
-Figma source is recorded as a limitation rather than invented or treated as an
-automatic blocker.
+session when Jira is authoritative. Provide Figma access when visual or
+interaction evidence is essential. An inaccessible optional Figma source is
+recorded as a limitation rather than invented or treated as an automatic blocker.
 
 ## Validate
 
 Run from the repository root:
 
 ```bash
-python3 scripts/validate.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
 ```
 
-The validator checks the exact 25-file distribution, all five canonical agent TOMLs,
-the skill frontmatter, eight direct skill references, full-tree portability,
-and the official skill validator when it can be resolved.
+The validator checks the exact 25-file distribution, all five canonical agent
+TOMLs, the skill frontmatter, seven direct skill references, full-tree
+portability, and the optional official skill validator when resolvable.
 
 ## Install and update
 
-Preview every managed write without changing the destination:
+Preview managed writes without modifying the destination:
 
 ```bash
-./scripts/install.sh --dry-run
+bash scripts/install.sh --dry-run
 ```
 
 Install or update the managed files:
 
 ```bash
-./scripts/install.sh
+bash scripts/install.sh
 ```
 
-The destination defaults to `${CODEX_HOME:-$HOME/.codex}`. Set `CODEX_HOME`
-to install into a different Codex home, and set `SDD_PYTHON` when the preferred
-Python interpreter is not discovered automatically.
+The destination defaults to `${CODEX_HOME:-$HOME/.codex}`. Set `CODEX_HOME` for a
+different installation, and `SDD_PYTHON` when Python discovery needs an override.
 
-Before every installation, validation runs before any write. Each cycle creates
-an isolated artifact package by default; reuse it only after an explicit user
-continuation request whose identity matches the existing package. A reinstall backs
-up every existing managed destination, including a previous
+Validation runs before any installation write. A reinstall backs up the entire
+previous managed skill directory and managed agent files, including an existing
 `sdd-orchestrator.toml`, under
-`$CODEX_HOME/backups/sdd-workflow-<timestamp>-<process-id>/`. The installer
-copies only `skills/sdd-workflow` and the five active `sdd-*.toml` files, then
-retires only that exact former Orchestrator path; unmanaged agents and other
-Codex files remain untouched. Restore a previous version by copying its
-backed-up skill and managed agent files back to the same locations.
+`$CODEX_HOME/backups/sdd-workflow-<timestamp>-<process-id>/`.
+The installer replaces the complete managed skill directory, so files removed
+from the distribution do not remain active after an upgrade. Their previous bytes
+remain in the backup. It installs the five active TOMLs, retires only the exact
+former Orchestrator agent path, and leaves unmanaged agents and other Codex files
+untouched. Restore a previous version from the corresponding backup when needed.
+
+Installing the package does not change the root session's selected model or the
+client's global security settings. This repository's CI tests use temporary
+installations; they do not update a user's active Codex installation.
+
+Each runtime cycle creates an isolated artifact package by default. Reuse requires
+an explicit continuation request and matching directory, workspace, and source
+identity; an old active feature never selects the next task's package.
 
 ## Repository structure
 
 ```text
+.github/workflows/      Read-only continuous validation
 agents/                 Five canonical Codex agent definitions
-docs/                   Approved design and implementation plan
+docs/                   Current design and implementation/verification plan
 scripts/                Distribution validator and installer
-skills/sdd-workflow/    Skill core, metadata, and role references
-tests/                  Validator and installer behavioral tests
+skills/sdd-workflow/    Skill core, metadata, and seven role references
+tests/                  Policy, validator, and installer regression tests
 ```
 
 ## Tests
@@ -142,10 +187,14 @@ tests/                  Validator and installer behavioral tests
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 bash tests/test_install.sh
+bash -n scripts/install.sh tests/test_install.sh
+git diff --check
 ```
 
-Installer tests always use a temporary `CODEX_HOME` and do not modify an active
-Codex installation.
+The GitHub Actions workflow runs policy regressions, distribution validation, the
+full Python suite, and installer/upgrade checks on pull requests and main pushes.
+Installer tests always use a temporary `CODEX_HOME`; they test backup and removal
+of obsolete managed files without touching an active installation.
 
 ## Repository
 
