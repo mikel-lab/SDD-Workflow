@@ -1,6 +1,6 @@
 ---
 name: sdd-workflow
-description: Use when a software change should follow a governed Specification-Driven Development cycle from a Jira task or detailed feature request, including repository-grounded planning, implementation routing, independent verification, or explicit setup/import of remote SDD documentation.
+description: Use when a software change needs a governed Specification-Driven Development cycle, when preparing a PR containing SDD work, or when explicitly setting up remote SDD storage or migrating local artifacts, including tracked files.
 ---
 
 # SDD Workflow
@@ -13,7 +13,7 @@ Before acting, every role must read this file completely and then every referenc
 
 ## Root Chat Authority
 
-The invoking root chat is the sole coordination and user-contact authority for a cycle. It performs the Orchestrator role: it owns lifecycle transitions, gate decisions, unavoidable user questions, Planner, implementer, and Reviewer delegation. The root chat must not dispatch `sdd-orchestrator`; a configured `sdd-orchestrator` is not a second coordinator for a root-chat cycle.
+The invoking root chat is the sole coordination and user-contact authority for a cycle. It performs the Orchestrator role: it owns lifecycle transitions, gate decisions, unavoidable user questions, Planner, implementer, and Reviewer delegation. The root chat must not dispatch `sdd-orchestrator` or create a competing coordinator.
 
 Select GPT-6 Sol (`gpt-6-sol`) with `medium` reasoning effort for the root chat when supported. This is a session recommendation, not a claim that a skill or agent TOML changes the active root model. Record unavailable runtime metadata as `not verified`.
 
@@ -32,9 +32,9 @@ Before reading a governed artifact, the root chat establishes a cycle identity a
 
 The project may declare an authorized documentation repository in `<workspace_root>/.sdd/config.json`. Reading this small config does not load history. Do not read the remote index at intake or consult old packages by default.
 
-Read [Remote Memory](references/remote-memory.md) only when performing configured archival at task closure, resolving a concrete question from history, or handling an explicit storage-setup/local-history-import request. Setup and import are bounded maintenance operations, not software changes: follow that reference without invoking SpecKit or opening a development cycle. The normal role table and gates continue to govern software changes.
+Read [Remote Memory](references/remote-memory.md) only for configured archival at task closure, a concrete historical question, explicit storage setup/import or tracked-artifact migration, or authorized preparation of a PR containing SDD work. Setup/import and reference-only PR preparation are bounded administrative operations: follow that reference without invoking SpecKit or opening a development cycle. Tracked-artifact migration requires its own explicit request; routine cleanup still preserves tracked files. The normal role table and gates continue to govern software changes.
 
-The running agent stores documents and maintains the remote index through its authenticated GitHub tools in the same session. No GitHub automation or PR coupling is introduced. The only historical-read exception is the bounded, recorded, read-only lookup defined by that reference; it never selects or reactivates the current cycle.
+The running agent stores documents and maintains the remote index through its authenticated GitHub tools in the same session. When already authorized to prepare a PR, include the verified package references or an honest pending status; do not create a PR or add automation or merge gates for documentation. Administrative catalog/receipt reads to recover exact PR links do not authorize loading old task contents. The only historical-read exception is the bounded, recorded, read-only lookup defined by that reference; it never selects or reactivates the current cycle.
 
 ## Agent Profiles
 

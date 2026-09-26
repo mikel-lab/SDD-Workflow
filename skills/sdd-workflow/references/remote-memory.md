@@ -1,8 +1,9 @@
 # Remote Memory
 
 Use this reference only for configured task archival, a justified historical lookup,
-explicit storage setup, or explicit local-history import. This is an agent procedure,
-not a service: perform work in the same session using authenticated GitHub tools.
+explicit storage setup/import (including tracked-artifact migration), or authorized
+PR preparation. This is an agent procedure, not a service: perform work in the
+same session using authenticated GitHub tools.
 No GitHub Actions, hooks, background jobs, no PR synchronization, and no extra
 review gates. Do not clone or synchronize the documentation repository locally.
 The application and its build do not access this repository; the agent does.
@@ -165,7 +166,9 @@ anything changed, is still active, or cannot be checked, keep it. Delete only
 the exact inventoried, verified, authorized files; remove directories only when
 empty. Never recursively delete a project, feature root or `.specify` directory.
 Preserve configuration, templates, excluded files, open tasks, other agents' files
-and tracked files. Do not change Git tracking, Git history or application resources.
+and tracked files. Routine cleanup must not change Git tracking, Git history or
+application resources. Only the separately requested Explicit Tracked Artifact
+Migration below can change tracking; that authority is not granted by the cleanup flag.
 The cleanup is closed-cycle housekeeping, not a write to a live frozen baseline.
 Absent cleanup authority, retain local files and state that outcome.
 
@@ -191,3 +194,97 @@ Do not rewrite Git history or assume documents are tracked. Report each package
 as stored, partial, skipped or pending, with its remote location and retained
 local paths. Creating the storage configuration does not itself authorize importing
 or deleting every historical folder on the machine.
+
+## Explicit Tracked Artifact Migration
+
+Run only on an explicit user request to migrate versioned SDD artifacts, one
+project at a time, outside a development cycle. Import-only authorization is
+insufficient; `cleanup_local_after_verification` does not authorize changing Git tracking.
+Do not scan for tracked history at normal task intake or attach this maintenance
+to a feature automatically. The default protection for tracked files remains.
+
+1. Establish the exact approved file list from user-authorized artifact roots and
+   Git's tracked inventory. Record the repository, branch, staged and working-tree
+   state. Preserve concurrent changes; defer paths with unresolved staged or local
+   edits rather than resetting them. Exclude active or uncertain-status packages,
+   configuration, templates and unsafe or unsupported files. Keep `AGENTS.md`,
+   `.sdd/config.json` and required `.specify/` tools tracked. All excluded files
+   remain protected from untracking and deletion.
+2. Before changing Git tracking, use the import procedure to upload and verify the
+   complete package and catalog. Require a verified archive receipt and SHA-256
+   inventory. Recheck local hashes against that receipt; partial uploads, changed
+   bytes or missing evidence retain local files and their tracking.
+3. Check actual references from project/build files and scripts before removal.
+   For iOS, inspect relevant Xcode target/resource references, Copy Bundle Resources
+   and `Package.swift` resource/exclude declarations. Correct only dependencies
+   within the authorized maintenance scope; do not change unrelated project
+   settings. Verify the affected build/checks. If checks are unavailable, report
+   not verified and retain dependent files when removal safety is unresolved.
+4. Preview `git --literal-pathspecs rm --cached --dry-run --` with the exact approved
+   file list, not directories or globs. Inspect that output, then use
+   `git --literal-pathspecs rm --cached --` with the same list. This leaves working
+   files in place. Never use `--force`, a repository-wide untracking command,
+   destructive reset or history rewriting as a shortcut.
+5. Add narrow `.gitignore` rules for the actual generated-artifact paths, preserving
+   existing rules. No blanket `docs/`, `.specify/`, `.sdd/` or Markdown exclusions.
+   Use `git check-ignore --no-index` to test patterns even for tracked files:
+   generated paths must be ignored, required configuration/templates must not.
+   Verify only the selected files left tracking.
+   Stage only this maintenance diff for a normal scoped commit, and commit/push
+   only when already authorized; do not commit unrelated staged changes.
+6. Physical deletion is separate from untracking. Require cleanup authority, closed
+   packages, no remaining readers and unchanged verified hashes under Local cleanup.
+   Otherwise keep the local copies. Report archived, untracked, retained and skipped
+   paths separately, plus the checks and any pending commit.
+
+Do not rewrite Git history: old commits keep their original documents. Do not
+promise that this operation removes their storage from `.git`. Ordinary task
+archival never invokes this exception implicitly.
+
+## PR Documentation References
+
+Apply only when the agent is already authorized to create or update a PR containing
+SDD work. Do not create a PR just to link documentation. No Actions, hooks,
+no required check, no merge gate and no background synchronization are introduced.
+Respect the assigned role's write permissions and preserve the existing PR template
+and unrelated description content.
+
+Include one direct package link per SDD cycle represented by the PR, pointing to
+its inventory and original artifacts, not only the project's general `INDEX.md`.
+Use a link pinned to the verified documentation commit, with archive ID, cycle ID,
+and documented source revision/state. Do not paste specifications or enumerate
+every document in the PR; the package inventory provides access to the full set.
+
+```text
+## SDD documentation
+- Cycle: <cycle ID>; archive: <archive ID>
+  Package: <verified commit-pinned package link>
+  Documented code: <source revision/state, or unknown>
+  Archive: <stored | pending archival | partial | not configured>
+```
+
+Use the receipt from task closure. A later session may recover the exact receipt
+or read the configured index and selected `archive.json` for a known cycle, source
+revision or task identity. These are administrative metadata reads, not historical
+task evidence: note their paths/revisions and purpose in the PR handoff, without
+adding them to active artifacts or `historical_reads`. Do not read old specs,
+plans or task checklists merely to compose a PR; do not discover sibling packages.
+Reference-only work needs no new development cycle and must not reactivate the
+archived one. If the association cannot be
+established from bounded metadata, report it as unresolved rather than guessing.
+Any substantive use of historical contents still requires Historical Lookup.
+
+Check the linked package's recorded source revision/state against the PR scope.
+A dirty or unknown source state, a different code revision, or later changes must
+be stated as a limitation; do not relabel an older package as current or fabricate
+code correspondence. Request any necessary document correction through the owning
+cycle's normal rules, not by editing an immutable archive. A stored package is
+not proof of merge or current production behavior.
+
+For a PR prepared before task closure, say pending archival; do not weaken
+final approval or archive verification to manufacture a link. Likewise report
+not configured, partial, failed or unavailable storage honestly. Do not invent
+URLs or mark a partial package complete. Archival still runs at task closure
+whether or not a PR exists. Update this section only during an authorized PR
+edit in the same session; otherwise include the exact available reference or
+pending status in the final handoff. Never promise a later automatic PR update.
