@@ -132,15 +132,38 @@ The remote index is a short catalog, not a startup reading list. Agents consult 
 only to answer a concrete question that current sources do not resolve, then read
 selected documents at a pinned revision. Historical reads are recorded separately
 and never reactivate old cycles or override current requirements. Reading the index
-to append a new archive entry is administrative work, not historical task context.
+to append a new archive entry or recover an exact PR reference is administrative
+work, not historical task context; it does not authorize reading old specs.
 
 Existing untracked local SDD folders can be imported in a separately requested,
 bounded migration, one project/package at a time. Originals are preserved; unknown
 integration state is explicitly unverified. Active tasks, configuration and
 unverified local copies are not removed. No Git history rewrite is needed.
 
+For already versioned artifacts, explicitly request a **tracked-artifact migration**.
+The agent verifies the remote archive before previewing bounded untracking, checks
+actual build dependencies (including Xcode resources when applicable), and adds
+narrow ignore rules. Routine cleanup and its config flag do not grant this authority.
+Installing or invoking the workflow does not migrate or untrack files automatically.
+
+When already authorized to prepare a PR containing SDD work, include one direct
+commit-pinned package link per cycle and its documented code identity. Do not paste
+every artifact or link only the global index. Before archival or when evidence is
+missing/stale, report pending status or the limitation; no new check, merge gate
+or automatic PR creation is added.
+
+Keep the procedure here rather than duplicating it in each project. An optional
+brief referral in the project's `AGENTS.md` can cover a later session:
+
+> For SDD work, follow `sdd-workflow` for archival and PR documentation references,
+> including PR preparation in a later session. The destination is `.sdd/config.json`.
+> Run tracked-artifact migration only on an explicit maintenance request.
+
+This is suggested project guidance, not an automatic edit of consumer `AGENTS.md`.
+
 See [Remote Memory](skills/sdd-workflow/references/remote-memory.md) for setup,
-publication, lookup, import and cleanup contracts. Installing the skill does not configure
+publication, lookup, import, tracked migration, PR references and cleanup contracts.
+Installing the skill does not configure
 consumer projects, create their documentation repositories, or migrate
 local history; these require their own authorized setup/import request. This is
 an agent-operated protocol, not a runtime interceptor or a bundled publishing
