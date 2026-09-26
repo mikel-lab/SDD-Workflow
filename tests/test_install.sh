@@ -62,7 +62,9 @@ test_fresh_install() {
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
   [[ $count == 5 ]] || fail "expected five managed agents, got $count"
   count=$(find "$home/skills/sdd-workflow/references" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
-  [[ $count == 7 ]] || fail "expected seven references, got $count"
+  [[ $count == 8 ]] || fail "expected eight references, got $count"
+  assert_file "$home/skills/sdd-workflow/references/remote-memory.md"
+  cmp -s "$source_root/skills/sdd-workflow/references/remote-memory.md" "$home/skills/sdd-workflow/references/remote-memory.md" || fail 'installed remote memory reference differs from source'
   assert_not_exists "$home/agents/sdd-orchestrator.toml"
   assert_not_exists "$home/skills/sdd-workflow/references/luna-lane.md"
 }
