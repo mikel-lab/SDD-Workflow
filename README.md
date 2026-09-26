@@ -98,6 +98,54 @@ check their presence and contracts, not a live Codex execution or usage savings.
 Verify actual model selection, effort, context handling, and runtime behavior in
 the installed client. No cost or quality improvement is claimed from static tests.
 
+## Remote documentation memory
+
+Each project can keep its SDD history in a separate private repository, without
+cloning that repository onto the developer's computer. The running agent uploads
+the current task's artifacts and updates a remote `INDEX.md` at task closure.
+There are no new GitHub Actions, hooks, PR checks, merge synchronization or services.
+
+The only permanent project-side pointer is `.sdd/config.json`. Example:
+
+```json
+{
+  "schema_version": 1,
+  "project_id": "example-app",
+  "source_repository": "example/app",
+  "documentation": {
+    "repository": "example/app-knowledge",
+    "branch": "main",
+    "root": ".",
+    "index": "INDEX.md",
+    "cleanup_local_after_verification": false
+  }
+}
+```
+
+Choose and authorize the real destination once per project, and provide the agent
+with authenticated GitHub read/write access. No credentials belong in this file.
+Set the optional cleanup flag to true only when authorizing deletion of verified,
+closed-cycle local copies. Upload or index failures retain local files. The agent
+verifies remote file contents and the catalog before claiming successful archival.
+
+The remote index is a short catalog, not a startup reading list. Agents consult it
+only to answer a concrete question that current sources do not resolve, then read
+selected documents at a pinned revision. Historical reads are recorded separately
+and never reactivate old cycles or override current requirements. Reading the index
+to append a new archive entry is administrative work, not historical task context.
+
+Existing untracked local SDD folders can be imported in a separately requested,
+bounded migration, one project/package at a time. Originals are preserved; unknown
+integration state is explicitly unverified. Active tasks, configuration and
+unverified local copies are not removed. No Git history rewrite is needed.
+
+See [Remote Memory](skills/sdd-workflow/references/remote-memory.md) for setup,
+publication, lookup, import and cleanup contracts. Installing the skill does not configure
+consumer projects, create their documentation repositories, or migrate
+local history; these require their own authorized setup/import request. This is
+an agent-operated protocol, not a runtime interceptor or a bundled publishing
+service. The policy regressions do not prove live uploads or model compliance.
+
 ## Requirements
 
 - Bash and Python 3.11 or newer, including `tomllib`; use `SDD_PYTHON` to select a
@@ -132,8 +180,8 @@ Run from the repository root:
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
 ```
 
-The validator checks the exact 25-file distribution, all five canonical agent
-TOMLs, the skill frontmatter, seven direct skill references, full-tree
+The validator checks the exact 27-file distribution, all five canonical agent
+TOMLs, the skill frontmatter, eight direct skill references, full-tree
 portability, and the optional official skill validator when resolvable.
 
 ## Install and update
@@ -178,7 +226,7 @@ identity; an old active feature never selects the next task's package.
 agents/                 Five canonical Codex agent definitions
 docs/                   Current design and implementation/verification plan
 scripts/                Distribution validator and installer
-skills/sdd-workflow/    Skill core, metadata, and seven role references
+skills/sdd-workflow/    Skill core, metadata, seven role references, conditional remote memory
 tests/                  Policy, validator, and installer regression tests
 ```
 

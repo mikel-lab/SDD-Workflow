@@ -38,6 +38,12 @@ Autonomy does not authorize changing the user's intended behavior, inventing mis
 9. Final_review combines the final Reviewer's read-only speckit-analyze reconciliation with its final integrated verdict. Approved-scope work already present in tasks.md returns as an implementation correction. Approved-scope work absent from tasks.md requires a Planner speckit-tasks contract repair; speckit-converge is permitted only after proven speckit-implement execution of the current tasks, or when a future converge contract explicitly supports the actual executor. Any task change returns to planning_review; after fresh approval and validation, implementation resumes automatically.
 10. Advance to complete only when the final Reviewer returns approved; route findings to the applicable correction state. Use blocked or cancelled when the cycle ends without a verified delivery. Do not ask the user to confirm completion after the evidence already satisfies the final gate.
 
+## Remote Archive at Closure
+
+After the final approved verdict and final cycle validation, perform authorized, configured archival in the same session using [Remote Memory](remote-memory.md). Keep `archive_status` separate from the cycle's terminal state and include both in the final report. An upload or index failure leaves archival pending, retains local files, and does not change the final Reviewer verdict. Missing config is not a new development gate. Do not claim storage or cleanup without verification, add GitHub automation, or wait for a PR/merge event.
+
+Archive housekeeping never edits the live frozen planning set. Cleanup is permitted only after the cycle is closed, verification succeeds, and the memory procedure's ownership and authorization checks pass. A blocked, cancelled or planning-only cycle may be archived on explicit request with its actual status; it must not be represented as a completed implementation.
+
 ## Planning and Implementation Gates
 
 The planning gate requires an independent Reviewer result of approved for the complete artifact set. The cycle validator must also pass, and the root chat freezes the exact artifact paths, contents, and reviewed baseline.

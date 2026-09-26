@@ -153,10 +153,10 @@ class DelegationPolicyTests(unittest.TestCase):
         self.assertIn(Path("tests/test_delegation_policy.py"), inventory)
         self.assertIn(Path(".github/workflows/validate.yml"), inventory)
         self.assertEqual(len(inventory), len(set(inventory)))
-        self.assertEqual(len(inventory), 25)
-        self.assertEqual(len(self.validator["REFERENCE_NAMES"]), 7)
-        self.assertIn("25-file distribution", self.readme)
-        self.assertIn("seven direct skill references", self.readme)
+        self.assertEqual(len(inventory), 27)
+        self.assertEqual(len(self.validator["REFERENCE_NAMES"]), 8)
+        self.assertIn("27-file distribution", self.readme)
+        self.assertIn("eight direct skill references", self.readme)
 
     def test_readme_runs_all_python_tests_and_states_their_limits(self) -> None:
         self.assertIn("python3 -m unittest discover -s tests -v", self.readme)

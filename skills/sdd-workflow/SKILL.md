@@ -1,6 +1,6 @@
 ---
 name: sdd-workflow
-description: Use when a software change should follow a governed Specification-Driven Development cycle from a Jira task or detailed feature request, including repository-grounded planning, implementation routing, or independent verification.
+description: Use when a software change should follow a governed Specification-Driven Development cycle from a Jira task or detailed feature request, including repository-grounded planning, implementation routing, independent verification, or explicit setup/import of remote SDD documentation.
 ---
 
 # SDD Workflow
@@ -28,6 +28,14 @@ Before reading a governed artifact, the root chat establishes a cycle identity a
 5. Use the ordered recipes in [Contracts](references/contracts.md) for every handoff and result. Preserve exact paths, commands, evidence, blockers, and residual risks. Keep the operational checkpoint separate from the frozen planning artifacts.
 6. Keep the root chat as coordination and gate authority, the Planner as planning owner, implementers as bounded execution owners, and the Reviewer as an independent read-only verifier. Only the root chat dispatches agents.
 
+## Remote Memory (Conditional)
+
+The project may declare an authorized documentation repository in `<workspace_root>/.sdd/config.json`. Reading this small config does not load history. Do not read the remote index at intake or consult old packages by default.
+
+Read [Remote Memory](references/remote-memory.md) only when performing configured archival at task closure, resolving a concrete question from history, or handling an explicit storage-setup/local-history-import request. Setup and import are bounded maintenance operations, not software changes: follow that reference without invoking SpecKit or opening a development cycle. The normal role table and gates continue to govern software changes.
+
+The running agent stores documents and maintains the remote index through its authenticated GitHub tools in the same session. No GitHub automation or PR coupling is introduced. The only historical-read exception is the bounded, recorded, read-only lookup defined by that reference; it never selects or reactivates the current cycle.
+
 ## Agent Profiles
 
 Keep the configured role profiles aligned with these settings:
@@ -52,7 +60,7 @@ All five configured roles are native subagents. Simple is the default route for 
 5. After an independent `approved` planning review, revalidate and freeze the artifact baseline, then proceed directly to implementation without asking the user to approve the plan.
 6. Revalidate before routing coherent dependency-ready implementation batches. Normal batches use implementer verification until final review; request an intermediate review only for the defined risk triggers. Route corrections and verification handoffs automatically within the authorized scope.
 7. The final Reviewer runs read-only `speckit-analyze` and returns the integrated verdict in the same action. When approved-scope work is absent from `tasks.md`, the Planner repairs task coverage under the `speckit-tasks` contract. Use `speckit-converge` only when evidence proves `speckit-implement` executed the current task list, or a future converge contract explicitly supports the executor used. Any task change returns through planning review; after a fresh independent `approved` result and successful validation, implementation resumes automatically.
-8. Complete only after that final independent verdict is `approved`. Report actual verification and limitations; never convert unavailable evidence into a success claim.
+8. Complete only after that final independent verdict is `approved`. At closure, perform configured remote archival under Remote Memory before the final report; report task verification and `archive_status` separately. Missing storage configuration or failed archival retains local files and does not invent a failed or successful code review. Never convert unavailable evidence into a success claim.
 
 ## Quick Reference
 

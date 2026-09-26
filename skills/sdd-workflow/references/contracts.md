@@ -52,6 +52,31 @@ next_transition: <next allowed state, its remaining conditions, and accountable 
 
 Refresh after meaningful state changes and before compaction when possible. Recover the preserved identity and compare current baseline and agent status before resuming. Do not redispatch completed or still-active assignments merely because context was compacted. Missing state is recovered from authorized cycle evidence; it is not permission to guess a gate verdict or rediscover unrelated packages.
 
+## Historical Read Record
+
+Use only after a justified read under [Remote Memory](remote-memory.md); otherwise report `historical_reads: none`. Keep this record in role results and the operational checkpoint, not as a new governed artifact. Do not add historical reads to `source_ids`, `artifact_reads`, the manifest inventory, or the literal Cycle Identity Handoff.
+
+```text
+question: <concrete unresolved question and why current evidence is insufficient>
+repository: <authorized documentation repository>
+revision: <exact remote commit read>
+paths: <exact index and document paths read at that revision>
+conclusion: <relevant finding, applicability check, or unresolved limitation>
+```
+
+Reference the record in downstream briefs rather than copying documents. Separate records may identify different pinned revisions. An adopted planning change still follows the ordinary Planner and review contracts. Index reads performed solely to update the catalog at closure are administrative publication reads, not historical evidence for the task. Explicit migration inventories are recorded separately as `import_inventory`.
+
+## Archive Result
+
+At closure or after explicit import, report the storage outcome independently of the development-cycle verdict. Do not create a new approval gate.
+
+```text
+archive_status: <stored | partial | pending | not_configured>
+archive_location: <repository, exact remote commit, archive ID and index path; or none>
+verification: <inventory/hash and index read-back evidence; or exact missing check>
+local_cleanup: <exact deleted or retained paths and reason; never implied>
+```
+
 ## User Attention Request
 
 Use only when the unavoidable-user-owned-blocker predicate in [Lifecycle and Gates](lifecycle-and-gates.md) is satisfied. Internal role blockers and routine corrections use the normal result contracts instead. Do not ask for a plan approval or permission already supplied.
@@ -94,7 +119,8 @@ configuration_status: <verified | not verified | mismatch | blocked>
 cycle_id: <generated cycle identity from sdd-cycle.json>
 source_ids: <complete authorized source identifiers from the manifest>
 artifact_directory: <exact selected package directory, relative to speckit_root>
-artifact_reads: <every artifact path read in this action; none when no artifact was read>
+artifact_reads: <every active governed artifact path read in this action; none when no artifact was read>
+historical_reads: <none, or exact Historical Read Records for bounded remote lookups>
 artifacts: <resolved root plus complete generated artifact paths and purpose>
 evidence: <source or repository evidence mapped to requirement or decision>
 assumptions: <each assumption in the required four-line assumption format>
@@ -123,6 +149,7 @@ delivery contract: <Implementer Result fields, evidence location, and handoff re
 
 ```text
 changed paths: <exact paths changed by this delivery>
+historical_reads: <none, or exact Historical Read Records for bounded remote lookups>
 behavior: <criterion-to-observed-behavior mapping>
 checks: <exact command or inspection, exit status/output evidence, and checked baseline>
 blockers: <condition, evidence, recovery tried, impact, and accountable next action>
@@ -135,7 +162,8 @@ residual risk: <remaining risk, affected criterion, and mitigation or follow-up>
 cycle_id: <cycle identity from the manifest supplied by the root chat>
 source_ids: <complete authorized source identifiers from the manifest>
 artifact_directory: <exact selected package directory supplied by the root chat>
-artifact_reads: <every artifact path read in this action; none when no artifact was read>
+artifact_reads: <every active governed artifact path read in this action; none when no artifact was read>
+historical_reads: <none, or exact Historical Read Records for bounded remote lookups>
 changed_paths: <exact paths changed by the reviewed delivery, or none for a planning-package review>
 scope: <artifact set, delivery, or integrated result reviewed plus baseline identity>
 criterion evidence: <criterion-to-source, artifact, code, test, or observed-result mapping>

@@ -21,6 +21,7 @@ REFERENCE_NAMES = (
     "orchestrator.md",
     "planner.md",
     "reviewer.md",
+    "remote-memory.md",
     "sources-and-artifacts.md",
 )
 CANONICAL_AGENTS = {
@@ -45,6 +46,7 @@ EXPECTED_FILES = (
     Path("skills/sdd-workflow/scripts/validate_cycle.py"),
     Path("tests/test_validate.py"),
     Path("tests/test_delegation_policy.py"),
+    Path("tests/test_remote_memory.py"),
     Path("tests/test_install.sh"),
 )
 USER_PATH = re.compile(r"/(?:Users|home)/[^/\\\s]+")
