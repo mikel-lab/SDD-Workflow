@@ -8,6 +8,12 @@ Use GPT-6 Sol (`gpt-6-sol`) with `medium` effort for root coordination when avai
 
 Report every handoff with the Orchestrator Status recipe in [Contracts](contracts.md). Apply [Lifecycle and Gates](lifecycle-and-gates.md) without skipping states. The current task authorizes the in-scope cycle; preserve explicit user limits and handle routine planning, corrections, verification, and routing automatically.
 
+## Remote Memory Ownership
+
+Read the project's small config without fetching history. Follow [Remote Memory](remote-memory.md) only for a justified lookup, configured task-closure archival, or explicit setup/import. The root chat owns administrative publication and index updates; this is not Planner or Reviewer work and never authorizes product changes. Do not dispatch an extra archival agent or involve GitHub Actions/PR events.
+
+Keep authorized `historical_reads` separate from active `artifact_reads` and preserve their exact provenance in the operational checkpoint. Check that each lookup addressed a concrete question under the memory procedure. Reject undeclared or unbounded historical reads. Give subagents only the relevant conclusions and references, not an archive dump; retain the existing no-parent-history delegation policy.
+
 ## Agent Spawn Policy
 
 Apply this policy before creating a native Planner, implementer, or Reviewer. Record the decision with the Delegation Record in [Contracts](contracts.md#delegation-record). Every configured role uses native delegation, including the Simple profile.
@@ -93,7 +99,7 @@ After every Planner action:
 
 1. Require `cycle_id`, `source_ids`, the assigned `artifact_directory`, `artifact_reads`, the complete dynamic artifact set, exact `changed_paths`, and exact cycle-validation command/result, including `.specify/feature.json` whenever the official `speckit-specify` action created or updated it.
 2. Independently compare the reported changed paths with available workspace evidence.
-3. Confirm every reported artifact read is inside the assigned directory. An external artifact read invalidates the Planner Result.
+3. Confirm every reported `artifact_reads` path is inside the assigned directory. An unauthorized external artifact read invalidates the Planner Result. Validate any separate `historical_reads` against Remote Memory; it is not a governed artifact or a cycle-selection input.
 4. Confirm every write satisfies the pre-gate boundary in [Sources and Artifacts](sources-and-artifacts.md): assigned-directory artifacts plus only the exact `.specify/feature.json` bootstrap write by `speckit-specify`; reject every other `.specify/` write.
 5. At planning completion, require a successful `validate_cycle.py` result whose command supplies the root-owned workspace, cycle ID, SpecKit root, primary source, complete source-ID set, artifact directory, and exactly one new-cycle or continuation identity before moving to `planning_review`.
 6. If any path is missing from the report or outside the boundary, stop the affected flow, preserve evidence without destructive cleanup, and route an evidenced correction internally where possible.
@@ -102,7 +108,7 @@ When the Planner returns a material blocker, first confirm that authoritative so
 
 ## Mandatory Planning Review
 
-When the Planner reports a coherent package, run and record the cycle validator before `planning_review`, then commission one fresh, independent Reviewer. Supply the complete literal Cycle Identity Handoff, repository instructions, exact dynamic artifact paths, and Planner evidence; do not abbreviate source IDs or supply a desired verdict. Require the Reviewer to report every artifact read and the validator command/result; an external artifact read invalidates its result.
+When the Planner reports a coherent package, run and record the cycle validator before `planning_review`, then commission one fresh, independent Reviewer. Supply the complete literal Cycle Identity Handoff, repository instructions, exact dynamic artifact paths, and Planner evidence; do not abbreviate source IDs or supply a desired verdict. Require the Reviewer to report every active artifact read, separate `historical_reads`, and the validator command/result; an unauthorized external artifact read invalidates its result. Apply the same Remote Memory boundary check used for the Planner.
 
 Route `corrections required` findings to the Planner as a bounded `planning_correction`, then return the delta to the same Reviewer for a focused delta re-review. Commission a fresh full planning review only after material changes to scope, architecture, acceptance criteria, source set, or artifact identity. Keep `conditionally verified` outside the approval gate and assign its missing checks to the permitted accountable role. Apply internal escalation under Repeated Conditions in [Lifecycle and Gates](lifecycle-and-gates.md); retry counts do not create a user-approval gate.
 
@@ -150,3 +156,5 @@ After approved tasks are delivered, enter `final_review` and request one final R
 If convergence appends any task, treat `tasks.md` as changed immediately: invalidate the frozen baseline and planning approval, obtain a fresh planning review, and resume implementation automatically after `approved` and successful validation. Do not schedule an identical whole-package review afterward. Do not accept optional improvements or scope expansion as convergence work.
 
 Enter `complete` only after the final integrated Reviewer returns `approved`. The final report must include one Orchestrator Status and preserve the applicable Planner, Implementer, and Reviewer contract evidence so it identifies the terminal state, reviewed sources and baseline, exact changed paths, criterion coverage, all verification commands and results, residual risks, and any follow-up outside the approved scope. Never present `blocked`, `corrections required`, or `conditionally verified` as success. Report completion directly; do not request an additional acceptance phrase.
+
+After final approval, perform configured archival before the final report and include the Archive Result from Contracts. Preserve local artifacts when configuration, access, upload, index verification or cleanup authority is missing; report the exact storage limitation separately from the development result.

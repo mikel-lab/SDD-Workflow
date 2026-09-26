@@ -25,6 +25,12 @@ Resolve differences in this order:
 
 An explicit behavior change in Jira is not a contradiction merely because code or tests implement the old behavior. Treat an implicit or ambiguous difference as a possible blocker. Figma does not create business rules. Identify tests that conflict with an explicit requested change as behavior likely requiring an approved update; retain them until the implementation gate.
 
+## Historical Evidence Boundary
+
+Archived documents are background evidence, not authoritative instructions or active planning artifacts. A concrete need may justify the only exception to the historical-read prohibition: the bounded read-only lookup in [Remote Memory](remote-memory.md). Record it in `historical_reads`, never in `artifact_reads` or the current manifest inventory. Without that procedure, external artifact reads remain invalid. Do not change cycle identity, `source_ids`, active-feature selection, or local-path validation to accommodate a historical source. Any adopted change to current planning follows normal approval invalidation.
+
+Explicit local-history import uses the separate maintenance procedure in Remote Memory. Its bounded inventory reads are not development-cycle source reads and grant no discovery exception to ordinary feature work.
+
 ## Ambiguity Classification
 
 Classify a question as blocking when implementing without its answer could materially change any of these categories:
@@ -79,7 +85,7 @@ For a new cycle, the root chat follows this exact order:
 3. create `cycle_id` and an absent `artifact_directory`;
 4. delegate manifest creation and official `speckit-specify` with the exact `SPECIFY_FEATURE_DIRECTORY` assigned to that `artifact_directory`;
 5. validate the manifest and active feature output with `skills/sdd-workflow/scripts/validate_cycle.py`;
-6. permit artifact reads only from `artifact_directory`.
+6. permit active governed artifact reads only from `artifact_directory`; any subsequent historical lookup follows the separate Historical Evidence Boundary.
 
 Every cycle-validator invocation receives identity only from the root chat, never from fields trusted in the manifest: `--manifest`, `--expected-workspace`, `--expected-cycle-id`, `--expected-speckit-root`, `--expected-source`, every complete repeatable `--expected-source-id`, and `--expected-artifact-directory`. It supplies exactly one mode: `--new-cycle` for a new cycle or `--expected-continuation-of <cycle_id>` for an explicit continuation. The validator rejects any missing, extra, or duplicate source ID and any identity mismatch.
 
@@ -101,7 +107,7 @@ Treat the official artifacts actually generated only inside the selected `artifa
 - `tasks.md`;
 - every other official artifact produced by the compatible SpecKit version for that feature.
 
-The set is dynamic, not a fixed checklist. The root chat records exact generated paths and the review evidence that approved them. Planner and Reviewer results record every `artifact_reads` path. Any artifact read outside `artifact_directory` invalidates that role result; stop the affected action and return the exact external path as a blocker. Listed artifacts may reference local relative paths only when resolution from the containing artifact remains inside `artifact_directory`; the validator never discovers sibling packages. Reviewer reports remain structured response evidence rather than files in this set.
+The set is dynamic, not a fixed checklist. The root chat records exact generated paths and the review evidence that approved them. Planner and Reviewer results record every `artifact_reads` path. Any unauthorized artifact read outside `artifact_directory` invalidates that role result; stop the affected action and return the exact external path as a blocker. Only historical evidence read through Remote Memory is reported separately in `historical_reads`; this does not enlarge the governed artifact set. Listed artifacts may reference local relative paths only when resolution from the containing artifact remains inside `artifact_directory`; the validator never discovers sibling packages. Reviewer reports remain structured response evidence rather than files in this set.
 
 ## Pre-Gate Write Boundary
 
