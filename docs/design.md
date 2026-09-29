@@ -2,7 +2,7 @@
 
 ## Estado y alcance
 
-Fecha del diseño vigente: 2026-09-24. Evolución autorizada por el usuario sobre el ciclo aislado existente. Este documento describe la distribución actual; el historial anterior permanece en Git. Los resultados de verificación corresponden al commit y a su ejecución de CI, no demuestran una instalación global ni una ejecución real de los modelos en el cliente del usuario.
+Fecha del diseño vigente: 2026-09-30. Evolución autorizada por el usuario sobre el ciclo aislado existente: Planner y Reviewer pasan a GPT-6.1 Sol high; quedan dos perfiles de implementación, GPT-6 Luna max por defecto y GPT-6.1 Sol medium para tareas complejas. Este documento describe la distribución actual; el historial anterior permanece en Git. Los resultados de verificación corresponden al commit y a su ejecución de CI, no demuestran una instalación global ni una ejecución real de los modelos en el cliente del usuario.
 
 El objetivo es completar una tarea encargada mediante `sdd-workflow` sin confirmaciones rutinarias: planificación, revisión, implementación, corrección y verificación final. Solo requiere atención del usuario un bloqueo ineludible que necesite una decisión, información esencial, acceso o autoridad que el sistema no pueda obtener con la evidencia y permisos disponibles.
 
@@ -11,17 +11,16 @@ El objetivo es completar una tarea encargada mediante `sdd-workflow` sin confirm
 | Responsabilidad | Perfil | Modelo | Esfuerzo |
 | --- | --- | --- | --- |
 | Coordinación | Chat raíz; no es otro agente | gpt-6-sol | medium |
-| Planificación | sdd-planner | gpt-6-sol | high |
-| Implementación principal | sdd-implementer-main | gpt-6-sol | medium |
-| Implementación compleja | sdd-implementer-high | gpt-6-sol | high |
-| Implementación acotada | sdd-implementer-simple | gpt-6-luna | high |
-| Revisión independiente | sdd-reviewer | gpt-6-sol | high |
+| Planificación | sdd-planner | gpt-6.1-sol | high |
+| Implementación por defecto | sdd-implementer-simple | gpt-6-luna | max |
+| Implementación compleja | sdd-implementer-main | gpt-6.1-sol | medium |
+| Revisión independiente | sdd-reviewer | gpt-6.1-sol | high |
 
-Existen exactamente cinco agentes configurados, todos nativos. El chat raíz es la única autoridad de coordinación y contacto con el usuario; no despacha `sdd-orchestrator`. La recomendación de modelo del chat no implica que una skill cambie automáticamente el modelo de una sesión ya abierta.
+Existen exactamente cuatro agentes configurados, todos nativos, y solo dos perfiles de implementación. El chat raíz es la única autoridad de coordinación y contacto con el usuario; no despacha `sdd-orchestrator`. La recomendación de modelo del chat no cambia ni implica que una skill cambie automáticamente el modelo de una sesión ya abierta.
 
 Planner crea y corrige artefactos. Los implementadores trabajan exclusivamente en su alcance asignado. Reviewer permanece read-only y evalúa evidencia de forma independiente. El chat dirige el ciclo y comprueba límites, sin asumir la planificación profunda, implementación o revisión como alternativa a un rol no disponible. Solo el chat raíz despacha agentes; no existe delegación recursiva ni un modo de ejecución especial por el nombre del modelo.
 
-Simple recibe trabajo aislado, bien especificado, con dependencias satisfechas y comprobación directa. Main recibe trabajo no trivial, integración y clasificaciones dudosas. High sustituye a Main cuando la complejidad o un fallo de razonamiento lo justifique. Main y High nunca trabajan simultáneamente en el mismo ciclo. Se permiten como máximo dos Simple concurrentes y un principal, siempre con propiedad exclusiva y no solapada de archivos entre todos los escritores.
+Se conservan los identificadores Simple y Main por compatibilidad. Simple es la ruta predeterminada para trabajo aprobado y acotado, incluidas implementaciones ordinarias y correcciones; no se limita a tareas triviales. Main se reserva para complejidad demostrada, como depuración difícil, razonamiento transversal, migraciones delicadas o problemas complejos de concurrencia, persistencia o contratos. Se documenta la evidencia antes de escalar; un encargo incompleto o una dependencia sin resolver no se arreglan cambiando de modelo. Las correcciones ordinarias permanecen en Simple y las complejas pasan a Main mediante un traspaso seguro del estado, sin duplicar una asignación activa. Se permiten como máximo dos instancias Simple concurrentes y una Main, siempre con propiedad exclusiva y no solapada de archivos entre todos los escritores. Son límites de instancias, no perfiles adicionales. No se introduce un tercer implementador ni se aumenta automáticamente el esfuerzo de Main.
 
 ## Autonomía y límites
 
@@ -107,12 +106,12 @@ El Orchestrator Checkpoint conserva identidad, estado, baseline, decisiones, asi
 
 ## Distribución y actualización
 
-La distribución mantiene 25 archivos: cinco agentes, siete referencias, scripts, documentación, pruebas y el workflow de CI. El instalador valida antes de escribir, respalda íntegramente la skill gestionada y los agentes existentes y reemplaza la carpeta gestionada completa. Los archivos retirados no quedan activos; sus bytes se conservan en el backup. El antiguo `sdd-orchestrator.toml` sigue retirándose por su ruta exacta y los agentes no gestionados no se modifican.
+La distribución mantiene 26 archivos: cuatro agentes, ocho referencias, scripts, documentación, pruebas y el workflow de CI existente. El instalador valida antes de escribir, respalda íntegramente la skill gestionada y los agentes existentes y reemplaza la carpeta gestionada completa. Los archivos retirados no quedan activos; sus bytes se conservan en el backup. Se retiran por sus rutas exactas el antiguo `sdd-orchestrator.toml` y el tercer implementador `sdd-implementer-high.toml`; los agentes no gestionados no se modifican.
 
 No se añaden dependencias de ejecución al consumidor aparte de las existentes. El workflow de GitHub usa permisos de lectura, no persiste credenciales del checkout y ejecuta verificaciones de la distribución en un entorno temporal. Publicar una PR no instala la skill en el equipo del usuario.
 
 ## Criterios y límites de verificación
 
-Se comprueban la matriz de modelos en TOML y validador, las reglas de autonomía y recuperación, la ausencia del mecanismo externo retirado, la identidad de ciclo, los gates independientes, la revisión por riesgo y la actualización con backup y eliminación de archivos obsoletos. Se conservan pruebas negativas del validador para inventarios, identidades, referencias, fuentes y codificación inválidos.
+Se comprueban la matriz de modelos en TOML y validador, las reglas de autonomía y recuperación, la ausencia del mecanismo externo retirado, la identidad de ciclo, los gates independientes, la revisión por riesgo y la actualización con backup y eliminación de archivos obsoletos. Se conservan pruebas negativas del validador para inventarios, identidades, referencias, fuentes y codificación inválidos. La nueva cobertura exige exactamente dos perfiles de implementación, Luna max como ruta predeterminada, Sol 6.1 medium para complejidad demostrada y la retirada recuperable del tercer perfil durante una actualización.
 
 La suite de políticas analiza texto y configuración. Los tests de validador e instalación ejecutan scripts reales en copias temporales. CI no demuestra selección efectiva de modelo, obediencia de subagentes, comportamiento después de compactación, calidad de código generado ni ahorro de tokens. Esas propiedades requieren una prueba posterior en el runtime real con tareas comparables y evidencia vinculada a cada agente.

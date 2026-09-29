@@ -11,23 +11,26 @@ rules and native role definitions.
 | Role | Model | Effort | Purpose |
 | --- | --- | --- | --- |
 | Root chat / Orchestrator | `gpt-6-sol` | `medium` | Owns coordination, lifecycle, and user contact. |
-| `sdd-planner` | `gpt-6-sol` | `high` | Creates and corrects the planning artifact set. |
-| `sdd-implementer-main` | `gpt-6-sol` | `medium` | Delivers non-trivial work, integrations, and Simple corrections. |
-| `sdd-implementer-high` | `gpt-6-sol` | `high` | Replaces Main for evidenced complex work. |
-| `sdd-implementer-simple` | `gpt-6-luna` | `high` | Delivers isolated, dependency-ready work with direct checks. |
-| `sdd-reviewer` | `gpt-6-sol` | `high` | Independently reviews planning, risk-triggered batches, and final output. |
+| `sdd-planner` | `gpt-6.1-sol` | `high` | Creates and corrects the planning artifact set. |
+| `sdd-implementer-simple` | `gpt-6-luna` | `max` | Default for approved, bounded implementation and ordinary corrections. |
+| `sdd-implementer-main` | `gpt-6.1-sol` | `medium` | Handles evidenced complex work and complex corrections. |
+| `sdd-reviewer` | `gpt-6.1-sol` | `high` | Independently reviews planning, risk-triggered batches, and final output. |
 
-There are five configured native agents. The root chat is the sole coordinator,
-not a sixth agent: do not dispatch `sdd-orchestrator`. Its model is a session
-recommendation; the skill cannot switch the active root model merely by naming
-it. The distribution validator enforces the five TOML profiles.
+There are four configured native agents, including exactly two implementation
+profiles. The root chat is the sole coordinator, not a fifth agent: do not dispatch
+`sdd-orchestrator`. Its model is a session recommendation; the skill cannot switch
+the active root model merely by naming it. The distribution validator enforces
+the four TOML profiles.
 
-Simple describes the task's complexity, not a requirement for low effort.
-Use it for well-specified, isolated changes following existing patterns. Use Main
-when non-trivial engineering decisions remain or isolation is uncertain. High
-replaces Main, never runs alongside it. Up to two Simple assignments may run
-concurrently when dependencies and exclusive paths permit it. All writers must
-have non-overlapping ownership. Only the root chat dispatches agents.
+The existing Simple and Main identifiers are retained for compatibility. Simple
+is the default implementation route, not only a route for trivial tasks. Main is
+reserved for evidenced complex work; incomplete briefs, unresolved dependencies,
+and uncertain ownership must be resolved before dispatch, not hidden by a model
+change. Ordinary corrections remain on the default route; complex corrections
+require a recorded trigger and safe handoff. Up to two Simple assignments and one
+Main assignment may run concurrently when dependencies and exclusive paths permit
+it. These are instance ceilings, not additional profiles. All writers must have
+non-overlapping ownership. Only the root chat dispatches agents.
 
 ## Automatic execution
 
@@ -203,7 +206,7 @@ Run from the repository root:
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate.py
 ```
 
-The validator checks the exact 27-file distribution, all five canonical agent
+The validator checks the exact 26-file distribution, all four canonical agent
 TOMLs, the skill frontmatter, eight direct skill references, full-tree
 portability, and the optional official skill validator when resolvable.
 
@@ -225,14 +228,15 @@ The destination defaults to `${CODEX_HOME:-$HOME/.codex}`. Set `CODEX_HOME` for 
 different installation, and `SDD_PYTHON` when Python discovery needs an override.
 
 Validation runs before any installation write. A reinstall backs up the entire
-previous managed skill directory and managed agent files, including an existing
-`sdd-orchestrator.toml`, under
+previous managed skill directory and managed agent files, including existing
+`sdd-orchestrator.toml` and `sdd-implementer-high.toml`, under
 `$CODEX_HOME/backups/sdd-workflow-<timestamp>-<process-id>/`.
 The installer replaces the complete managed skill directory, so files removed
 from the distribution do not remain active after an upgrade. Their previous bytes
-remain in the backup. It installs the five active TOMLs, retires only the exact
-former Orchestrator agent path, and leaves unmanaged agents and other Codex files
-untouched. Restore a previous version from the corresponding backup when needed.
+remain in the backup. It installs the four active TOMLs, retires only the exact
+former Orchestrator and High implementer paths, and leaves unmanaged agents and
+other Codex files untouched. Restore a previous version from the corresponding
+backup when needed.
 
 Installing the package does not change the root session's selected model or the
 client's global security settings. This repository's CI tests use temporary
@@ -246,7 +250,7 @@ identity; an old active feature never selects the next task's package.
 
 ```text
 .github/workflows/      Read-only continuous validation
-agents/                 Five canonical Codex agent definitions
+agents/                 Four canonical Codex agent definitions
 docs/                   Current design and implementation/verification plan
 scripts/                Distribution validator and installer
 skills/sdd-workflow/    Skill core, metadata, seven role references, conditional remote memory

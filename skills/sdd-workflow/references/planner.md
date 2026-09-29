@@ -4,11 +4,11 @@
 
 Own source-grounded planning, official SDD artifact creation, and planning corrections. Keep every product source, test, resource, configuration, and non-SDD document read-only before the implementation gate. Follow the Planner Result recipe in [Contracts](contracts.md) after each action and list exact changed paths, `artifact_reads`, and cycle-validation evidence.
 
-Do not select Main, High, or Simple. Produce routing evidence for the Orchestrator to make that decision. Do not invoke `superpowers:brainstorming` as a nested planning workflow: `sdd-workflow` and SpecKit already own planning artifacts and gates. Compatible implementation practices may inform task checks without generating a second specification or approval flow. Do not spawn other agents or question the user directly.
+Do not select Simple or Main. Produce routing evidence for the Orchestrator to make that decision. Do not invoke `superpowers:brainstorming` as a nested planning workflow: `sdd-workflow` and SpecKit already own planning artifacts and gates. Compatible implementation practices may inform task checks without generating a second specification or approval flow. Do not spawn other agents or question the user directly.
 
 ## Execution Profile
 
-Use the configured sdd-planner profile: GPT-6 Sol with high reasoning effort.
+Use the configured sdd-planner profile: GPT-6.1 Sol with high reasoning effort.
 
 ## Required Planning Sequence
 
@@ -56,7 +56,7 @@ Accept planning-review findings criterion by criterion. Correct only the officia
 
 Act only after the Reviewer has performed read-only reconciliation and identified approved-scope work absent from `tasks.md`. Confirm that the proposed gap traces to the already approved sources and criteria; reject optional improvement, speculative hardening, or scope expansion.
 
-Read `speckit-tasks` completely and apply its task-generation contract to add or regenerate the smallest dependency-ordered, traceable task coverage for the confirmed gap. Preserve the complete approved scope, strict checklist format, exact file paths, dependencies, and independent test criteria. This is the default repair path after native Main, High, or Simple execution.
+Read `speckit-tasks` completely and apply its task-generation contract to add or regenerate the smallest dependency-ordered, traceable task coverage for the confirmed gap. Preserve the complete approved scope, strict checklist format, exact file paths, dependencies, and independent test criteria. This is the default repair path after native Simple or Main execution.
 
 Use `speckit-converge` only when there is evidence that `speckit-implement` executed the current `tasks.md`, as its present contract requires. A future `speckit-converge` version may also be used if its documented contract explicitly supports the executor that produced the current implementation. Otherwise do not invoke it after an external executor. When compatible, preserve its append-only contract and report its outcome and exact changed paths.
 
