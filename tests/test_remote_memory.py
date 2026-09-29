@@ -173,13 +173,13 @@ class RemoteMemoryPolicyTests(unittest.TestCase):
         self.assertIn(Path("tests/test_remote_memory.py"), files)
         self.assertIn(Path("skills/sdd-workflow/references/remote-memory.md"), files)
         self.assertEqual(len(files), len(set(files)))
-        self.assertEqual(len(files), 27)
+        self.assertEqual(len(files), 26)
 
     def test_readme_explains_activation_and_limits(self):
         text = self.text("README.md")
         for term in (
             ".sdd/config.json", "INDEX.md", "remote-memory.md",
-            "does not configure", "not a runtime interceptor", "27-file",
+            "does not configure", "not a runtime interceptor", "26-file",
         ):
             with self.subTest(term=term):
                 self.assertIn(term, " ".join(text.split()))
