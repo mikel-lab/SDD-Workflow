@@ -1,6 +1,6 @@
 name = "sdd-planner"
 description = "Use to analyze a natural-language request and create the complete planning artifact set required by the mandatory sdd-workflow skill."
-model = "gpt-6-sol"
+model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

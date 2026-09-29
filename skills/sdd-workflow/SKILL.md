@@ -43,13 +43,12 @@ Keep the configured role profiles aligned with these settings:
 | Role | Agent profile | Model | Reasoning effort |
 | --- | --- | --- | --- |
 | Root chat / Orchestrator | invoking session, not an agent file | GPT-6 Sol (gpt-6-sol) | medium |
-| Planner | sdd-planner | GPT-6 Sol (gpt-6-sol) | high |
-| Reviewer | sdd-reviewer | GPT-6 Sol (gpt-6-sol) | high |
-| Main implementer | sdd-implementer-main | GPT-6 Sol (gpt-6-sol) | medium |
-| High implementer | sdd-implementer-high | GPT-6 Sol (gpt-6-sol) | high |
-| Simple implementer | sdd-implementer-simple | GPT-6 Luna (gpt-6-luna) | high |
+| Planner | sdd-planner | GPT-6.1 Sol (gpt-6.1-sol) | high |
+| Reviewer | sdd-reviewer | GPT-6.1 Sol (gpt-6.1-sol) | high |
+| Default implementer (Simple) | sdd-implementer-simple | GPT-6 Luna (gpt-6-luna) | max |
+| Complex implementer (Main) | sdd-implementer-main | GPT-6.1 Sol (gpt-6.1-sol) | medium |
 
-All five configured roles are native subagents. Simple is the default route for eligible low-complexity isolated work; Main handles non-trivial work and uncertain classifications; High replaces Main for evidenced complexity. A model name does not create a separate execution mode or extra review gates.
+All four configured roles are native subagents, with exactly two implementation profiles. Retain the existing Simple and Main identifiers for compatibility: Simple is the default for approved, bounded work, not only trivial tasks; Main is reserved for evidenced complex work. Resolve uncertainty from the brief and repository evidence before routing; neither an incomplete brief nor a model name creates a new execution mode or extra review gates. The root profile is unchanged.
 
 ## Core Sequence
 
@@ -68,5 +67,5 @@ All five configured roles are native subagents. Simple is the default route for 
 | --- | --- |
 | Root chat (Orchestrator role) | [Lifecycle and Gates](references/lifecycle-and-gates.md), [Sources and Artifacts](references/sources-and-artifacts.md), [Contracts](references/contracts.md), [Orchestrator](references/orchestrator.md), [Implementers](references/implementers.md), and [Reviewer](references/reviewer.md) |
 | Planner | [Lifecycle and Gates](references/lifecycle-and-gates.md), [Sources and Artifacts](references/sources-and-artifacts.md), [Contracts](references/contracts.md), and [Planner](references/planner.md) |
-| Main / High / Simple | [Lifecycle and Gates](references/lifecycle-and-gates.md), [Contracts](references/contracts.md), and [Implementers](references/implementers.md) |
+| Simple (default) / Main (complex) | [Lifecycle and Gates](references/lifecycle-and-gates.md), [Contracts](references/contracts.md), and [Implementers](references/implementers.md) |
 | Reviewer | [Lifecycle and Gates](references/lifecycle-and-gates.md), [Sources and Artifacts](references/sources-and-artifacts.md), [Contracts](references/contracts.md), and [Reviewer](references/reviewer.md) |

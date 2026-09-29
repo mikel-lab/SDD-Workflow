@@ -12,7 +12,7 @@ Before reviewing or reconciling a cycle, run `validate_cycle.py` with the root-s
 
 ## Execution Profile
 
-Use the configured sdd-reviewer profile: GPT-6 Sol with high reasoning effort.
+Use the configured sdd-reviewer profile: GPT-6.1 Sol with high reasoning effort.
 
 ## Verification Handoff
 

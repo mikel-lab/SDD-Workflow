@@ -57,11 +57,10 @@ skill_destination="$codex_home/skills/sdd-workflow"
 agent_names=(
   sdd-planner.toml
   sdd-implementer-main.toml
-  sdd-implementer-high.toml
   sdd-implementer-simple.toml
   sdd-reviewer.toml
 )
-retired_agent_names=(sdd-orchestrator.toml)
+retired_agent_names=(sdd-orchestrator.toml sdd-implementer-high.toml)
 
 if $dry_run; then
   printf 'Dry run: would install %s and %d managed agents into %s.\n' \

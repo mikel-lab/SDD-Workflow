@@ -60,12 +60,15 @@ test_fresh_install() {
   assert_file "$home/skills/sdd-workflow/SKILL.md"
   local count
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
-  [[ $count == 5 ]] || fail "expected five managed agents, got $count"
+  [[ $count == 4 ]] || fail "expected four managed agents, got $count"
+  count=$(find "$home/agents" -maxdepth 1 -name 'sdd-implementer-*.toml' -type f | wc -l | tr -d ' ')
+  [[ $count == 2 ]] || fail "expected two implementer profiles, got $count"
   count=$(find "$home/skills/sdd-workflow/references" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   [[ $count == 8 ]] || fail "expected eight references, got $count"
   assert_file "$home/skills/sdd-workflow/references/remote-memory.md"
   cmp -s "$source_root/skills/sdd-workflow/references/remote-memory.md" "$home/skills/sdd-workflow/references/remote-memory.md" || fail 'installed remote memory reference differs from source'
   assert_not_exists "$home/agents/sdd-orchestrator.toml"
+  assert_not_exists "$home/agents/sdd-implementer-high.toml"
   assert_not_exists "$home/skills/sdd-workflow/references/luna-lane.md"
 }
 
@@ -85,7 +88,7 @@ test_reinstall_backs_up_managed_destinations() {
 
 test_upgrade_backs_up_and_retires_orchestrator() {
   # Break caught: an upgrade deletes the exact retired file without backup or
-  # leaves it active after installing the five-agent distribution.
+  # leaves it active after installing the four-agent distribution.
   local home="$temp_root/retire-orchestrator"
   local expected="$temp_root/previous-orchestrator.toml"
   mkdir -p "$home/agents"
@@ -97,6 +100,31 @@ test_upgrade_backs_up_and_retires_orchestrator() {
   [[ -n $backup ]] || fail 'expected a retirement backup'
   cmp -s "$expected" "$backup/agents/sdd-orchestrator.toml" || fail 'retired agent backup lost original bytes'
   assert_not_exists "$home/agents/sdd-orchestrator.toml"
+}
+
+test_upgrade_backs_up_and_retires_high_implementer() {
+  # Break caught: the third implementer remains active, or its previous bytes
+  # and the retained profiles are not preserved during a five-to-four upgrade.
+  local home="$temp_root/retire-high"
+  local previous="$temp_root/previous-five-agents"
+  mkdir -p "$home/agents" "$previous"
+  local agent backup count
+  for agent in sdd-planner sdd-reviewer sdd-implementer-main sdd-implementer-simple sdd-implementer-high; do
+    printf 'previous-%s\noriginal bytes\n' "$agent" >"$previous/$agent.toml"
+    cp "$previous/$agent.toml" "$home/agents/$agent.toml"
+  done
+  run_install "$home"
+  backup=$(find "$home/backups" -type d -name 'sdd-workflow-*' -print -quit)
+  [[ -n $backup ]] || fail 'expected a five-agent upgrade backup'
+  for agent in sdd-planner sdd-reviewer sdd-implementer-main sdd-implementer-simple sdd-implementer-high; do
+    cmp -s "$previous/$agent.toml" "$backup/agents/$agent.toml" || fail "upgrade backup lost original bytes: $agent"
+  done
+  assert_not_exists "$home/agents/sdd-implementer-high.toml"
+  count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
+  [[ $count == 4 ]] || fail "upgrade left an incorrect agent count: $count"
+  for agent in sdd-planner sdd-reviewer sdd-implementer-main sdd-implementer-simple; do
+    cmp -s "$source_root/agents/$agent.toml" "$home/agents/$agent.toml" || fail "upgraded profile differs: $agent"
+  done
 }
 
 test_upgrade_removes_retired_reference_after_backup() {
@@ -114,20 +142,24 @@ test_upgrade_removes_retired_reference_after_backup() {
   assert_not_exists "$home/skills/sdd-workflow/references/luna-lane.md"
   cmp -s "$source_root/skills/sdd-workflow/SKILL.md" "$home/skills/sdd-workflow/SKILL.md" || fail 'installed skill differs from source'
   local agent
-  for agent in sdd-planner sdd-implementer-main sdd-implementer-high sdd-implementer-simple sdd-reviewer; do
+  for agent in sdd-planner sdd-implementer-main sdd-implementer-simple sdd-reviewer; do
     cmp -s "$source_root/agents/$agent.toml" "$home/agents/$agent.toml" || fail "installed profile differs: $agent"
   done
 }
 
 test_unmanaged_agents_are_unchanged() {
-  # Break caught: install rewrites an agent it does not own.
+  # Break caught: install rewrites an agent it does not own, including a name
+  # similar to the exact retired managed path.
   local home="$temp_root/unmanaged"
   mkdir -p "$home/agents"
   printf 'unmanaged\nbytes\n' >"$home/agents/keep-me.toml"
-  local before
+  printf 'custom-high\nbytes\n' >"$home/agents/sdd-implementer-high-custom.toml"
+  local before custom_before
   before=$(cksum "$home/agents/keep-me.toml")
+  custom_before=$(cksum "$home/agents/sdd-implementer-high-custom.toml")
   run_install "$home"
   [[ $(cksum "$home/agents/keep-me.toml") == "$before" ]] || fail 'unmanaged agent changed'
+  [[ $(cksum "$home/agents/sdd-implementer-high-custom.toml") == "$custom_before" ]] || fail 'similarly named unmanaged agent changed'
 }
 
 test_dry_run_reports_retirement_and_writes_nothing() {
@@ -135,13 +167,18 @@ test_dry_run_reports_retirement_and_writes_nothing() {
   local home="$temp_root/dry-run"
   mkdir -p "$home/agents" "$home/skills/sdd-workflow/references"
   printf 'retired-agent\n' >"$home/agents/sdd-orchestrator.toml"
+  printf 'retired-high\n' >"$home/agents/sdd-implementer-high.toml"
   printf 'retired-reference\n' >"$home/skills/sdd-workflow/references/luna-lane.md"
-  local before reference_before
+  local before reference_before high_before
   before=$(cksum "$home/agents/sdd-orchestrator.toml")
+  high_before=$(cksum "$home/agents/sdd-implementer-high.toml")
   reference_before=$(cksum "$home/skills/sdd-workflow/references/luna-lane.md")
   run_install "$home" --dry-run >"$temp_root/dry-run.out"
-  grep -F 'would retire sdd-orchestrator.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report retirement'
+  grep -F 'would retire sdd-orchestrator.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report orchestrator retirement'
+  grep -F 'would retire sdd-implementer-high.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report high implementer retirement'
+  grep -F '4 managed agents' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run reported incorrect agent count'
   [[ $(cksum "$home/agents/sdd-orchestrator.toml") == "$before" ]] || fail 'dry-run changed retired agent'
+  [[ $(cksum "$home/agents/sdd-implementer-high.toml") == "$high_before" ]] || fail 'dry-run changed retired high implementer'
   [[ $(cksum "$home/skills/sdd-workflow/references/luna-lane.md") == "$reference_before" ]] || fail 'dry-run changed retired reference'
   assert_not_exists "$home/skills/sdd-workflow/SKILL.md"
   assert_not_exists "$home/backups"
@@ -152,7 +189,8 @@ test_incompatible_explicit_python_fails_before_validation_or_writes
 test_fresh_install
 test_reinstall_backs_up_managed_destinations
 test_upgrade_backs_up_and_retires_orchestrator
+test_upgrade_backs_up_and_retires_high_implementer
 test_upgrade_removes_retired_reference_after_backup
 test_unmanaged_agents_are_unchanged
 test_dry_run_reports_retirement_and_writes_nothing
-printf 'install tests passed (8 scenarios)\n'
+printf 'install tests passed (9 scenarios)\n'
