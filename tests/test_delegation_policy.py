@@ -16,11 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCES = ROOT / "skills/sdd-workflow/references"
 EXPECTED_AGENTS = {
-    "sdd-planner.toml": ("sdd-planner", "gpt-6-sol", "high", "workspace-write"),
-    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6-sol", "medium", "workspace-write"),
-    "sdd-implementer-high.toml": ("sdd-implementer-high", "gpt-6-sol", "high", "workspace-write"),
-    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "high", "workspace-write"),
-    "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6-sol", "high", "read-only"),
+    "sdd-planner.toml": ("sdd-planner", "gpt-6.1-sol", "high", "workspace-write"),
+    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6.1-sol", "medium", "workspace-write"),
+    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "max", "workspace-write"),
+    "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6.1-sol", "high", "read-only"),
 }
 
 
@@ -83,7 +82,7 @@ class DelegationPolicyTests(unittest.TestCase):
     def test_parent_maximum_effort_does_not_replace_role_routing(self) -> None:
         self.assertIn("Do not inherit maximum effort", self.policy)
         self.assertIn("canonical TOML", self.policy)
-        self.assertIn("Main/High exclusion", self.policy)
+        self.assertIn("two-implementer routing", self.policy)
 
     def test_canonical_model_and_effort_matrix_matches_role_profiles(self) -> None:
         # Both the validator and actual TOMLs must implement the approved policy.
@@ -95,6 +94,33 @@ class DelegationPolicyTests(unittest.TestCase):
                     "name", "model", "model_reasoning_effort", "sandbox_mode",
                 ))
                 self.assertEqual(actual, expected)
+
+    def test_only_two_implementer_profiles_are_shipped(self) -> None:
+        self.assertEqual(
+            {path.name for path in (ROOT / "agents").glob("sdd-implementer-*.toml")},
+            {"sdd-implementer-simple.toml", "sdd-implementer-main.toml"},
+        )
+        self.assertEqual(
+            {path.name for path in (ROOT / "agents").glob("sdd-*.toml")},
+            set(EXPECTED_AGENTS),
+        )
+
+    def test_default_route_is_not_limited_to_trivial_work(self) -> None:
+        implementers = (REFERENCES / "implementers.md").read_text(encoding="utf-8")
+        self.assertIn("Simple is the default implementation route", implementers)
+        self.assertIn("not limited to trivial or low-complexity tasks", implementers)
+        self.assertIn("Main is reserved for evidenced complex work", implementers)
+        self.assertIn("Reclassify corrections by their actual complexity", implementers)
+
+    def test_retired_high_profile_cannot_be_dispatched(self) -> None:
+        paths = [*ROOT.glob("agents/*.toml"), *ROOT.glob("skills/**/*.md")]
+        for path in paths:
+            with self.subTest(path=path.relative_to(ROOT)):
+                content = path.read_text(encoding="utf-8")
+                self.assertNotIn("sdd-implementer-high", content)
+                self.assertNotIn("Main/High", content)
+                self.assertNotIn("Main or High", content)
+                self.assertNotIn("High replaces Main", content)
 
     def test_effective_configuration_requires_runtime_evidence(self) -> None:
         self.assertIn("runtime metadata", self.policy)
@@ -153,9 +179,9 @@ class DelegationPolicyTests(unittest.TestCase):
         self.assertIn(Path("tests/test_delegation_policy.py"), inventory)
         self.assertIn(Path(".github/workflows/validate.yml"), inventory)
         self.assertEqual(len(inventory), len(set(inventory)))
-        self.assertEqual(len(inventory), 27)
+        self.assertEqual(len(inventory), 26)
         self.assertEqual(len(self.validator["REFERENCE_NAMES"]), 8)
-        self.assertIn("27-file distribution", self.readme)
+        self.assertIn("26-file distribution", self.readme)
         self.assertIn("eight direct skill references", self.readme)
 
     def test_readme_runs_all_python_tests_and_states_their_limits(self) -> None:
