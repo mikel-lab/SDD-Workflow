@@ -54,13 +54,14 @@ python=$(resolve_python)
 codex_home=${CODEX_HOME:-"$HOME/.codex"}
 skill_source="$repo_root/skills/sdd-workflow"
 skill_destination="$codex_home/skills/sdd-workflow"
-agent_names=(
+agent_names=(sdd-reviewer.toml)
+retired_agent_names=(
   sdd-planner.toml
   sdd-implementer-main.toml
   sdd-implementer-simple.toml
-  sdd-reviewer.toml
+  sdd-orchestrator.toml
+  sdd-implementer-high.toml
 )
-retired_agent_names=(sdd-orchestrator.toml sdd-implementer-high.toml)
 
 if $dry_run; then
   printf 'Dry run: would install %s and %d managed agents into %s.\n' \

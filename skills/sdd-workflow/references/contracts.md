@@ -4,7 +4,7 @@ Use these ordered recipes for every role handoff. Keep each field present, conci
 
 ## Cycle Identity Handoff
 
-Create this block once from root-owned values and reuse it byte for byte for every Planner and Reviewer action. Values are literal and must not be abbreviated, summarized, converted to labels, or reconstructed from the manifest. Keep `artifact_directory` relative to `speckit_root`.
+Create this block once from root-owned values and reuse it byte for byte for every Main and Reviewer action. Values are literal and must not be abbreviated, summarized, converted to labels, or reconstructed from the manifest. Keep `artifact_directory` relative to `speckit_root`.
 
 ```text
 manifest: <exact absolute sdd-cycle.json path, or pending before first creation>
@@ -20,29 +20,29 @@ cycle_validation_command: <exact command using every value above and each litera
 
 The block must not be abbreviated in a retry or follow-up. Add action-specific scope and evidence after it; do not repeat the skill body or role instructions in the handoff.
 
-## Orchestrator Status
+## Cycle Status
 
 ```text
 state: <current normative lifecycle state>
 transition: <proposed next state and triggering condition>
 sources: <source, access method, evidence or limitation>
-routing: <native role, task boundary, and evidence for the route>
+routing: <Main, independent Reviewer or useful optional capability, bounded task and evidence>
 delegation: <native agent ID and reference to its latest Delegation Record, or none>
-gates: <independent planning review, successful cycle validation, frozen artifact baseline, and validity>
+gates: <risk assessment, conditional planning review, cycle/state validation, frozen artifact baseline, and validity>
 blockers: <condition, evidence, impact, owner, and required resolution>
 user_attention: <none, or reference to an unavoidable User Attention Request>
 risks: <known risk, likelihood or impact, and mitigation>
 next action: <single accountable action and required gate>
 ```
 
-## Orchestrator Checkpoint
+## Cycle Checkpoint
 
 Maintain this compact operational record in the root chat, with session-scoped runtime checkpoint storage when available. It is not a governed planning artifact: do not add it to `sdd-cycle.json`, change the approved artifact set, or write it into a consumer's planning package. Keep exact references to evidence rather than duplicating full transcripts.
 
 ```text
 cycle_id: <exact current cycle identity and reference to its literal Cycle Identity Handoff>
 state: <current lifecycle state>
-baseline: <approved artifact identities, repository revision/diff identity, and review evidence>
+baseline: <frozen current artifact identities, repository revision/diff identity, and review evidence>
 decisions: <explicit user decisions, scope limits, pauses, and documented assumptions>
 assignments: <task IDs, active/completed/blocked status, owning agent IDs, exact owned paths, and result references>
 dependencies: <completed and pending prerequisites, unavailable essential sources or tools>
@@ -64,7 +64,7 @@ paths: <exact index and document paths read at that revision>
 conclusion: <relevant finding, applicability check, or unresolved limitation>
 ```
 
-Reference the record in downstream briefs rather than copying documents. Separate records may identify different pinned revisions. An adopted planning change still follows the ordinary Planner and review contracts. Index reads performed solely to update the catalog at closure are administrative publication reads, not historical evidence for the task. Explicit migration inventories are recorded separately as `import_inventory`.
+Reference the record in downstream briefs rather than copying documents. Separate records may identify different pinned revisions. An adopted planning change still follows the ordinary Main and review contracts. Index reads performed solely to update the catalog at closure are administrative publication reads, not historical evidence for the task. Explicit migration inventories are recorded separately as `import_inventory`.
 
 ## Archive Result
 
@@ -94,13 +94,13 @@ Record the answer as a scoped cycle decision, revalidate any changed baseline, a
 
 ## Delegation Record
 
-Keep one compact record per native agent in the root chat, linked from Orchestrator Status. Fill requested values before spawning and update observed values only when runtime evidence becomes available. Reuse its agent ID on follow-ups rather than repeating the record. This is not a new governed artifact and must not change the manifest, approved baseline, or Cycle Identity Handoff. Do not create another agent or review to gather this metadata.
+Keep one compact record per native agent in the root chat, linked from Cycle Status. Fill requested values before spawning and update observed values only when runtime evidence becomes available. Reuse its agent ID on follow-ups rather than repeating the record. This is not a new governed artifact and must not change the manifest, approved baseline, or Cycle Identity Handoff. Do not create another agent or review to gather this metadata.
 
 ```text
 agent_id: <runtime agent identifier; pending before spawn; not verified if unavailable>
-requested_role: <exact canonical native SDD role>
-requested_model: <model from the selected canonical TOML>
-requested_effort: <effort from the selected canonical TOML>
+requested_role: <Reviewer or optional capability>
+requested_model: <Reviewer profile or actual optional capability>
+requested_effort: <configured requested effort when exposed>
 selection_evidence: <supported tool/profile arguments actually used, or blocking limitation>
 context_policy: <none | recent | all | not verified>
 context_argument: <exact supported argument and value used, or not verified>
@@ -111,9 +111,9 @@ runtime_evidence: <agent-linked metadata source and observed values, or not veri
 configuration_status: <verified | not verified | mismatch | blocked>
 ```
 
-`verified` requires matching runtime evidence for the effective model and effort and a supported context selection. `not verified` identifies missing observability, not permission to invent evidence. A confirmed contrary value takes `mismatch` precedence even when other values are unavailable; `blocked` records inability to apply the required profile or maintain the source boundary before delegation. These are configuration diagnostics, not Reviewer verdicts or lifecycle states; they neither grant nor replace any approval. Keep the actual blocker in Orchestrator Status when one exists. Task-specific briefs and every required literal identity field remain mandatory even when history is inherited.
+`verified` requires matching runtime evidence for the effective model and effort and a supported context selection. `not verified` identifies missing observability, not permission to invent evidence. A confirmed contrary value takes `mismatch` precedence even when other values are unavailable; `blocked` records inability to apply the required profile or maintain the source boundary before delegation. These are configuration diagnostics, not Reviewer verdicts or lifecycle states; they neither grant nor replace any approval. Keep the actual blocker in Cycle Status when one exists. Task-specific briefs and every required literal identity field remain mandatory even when history is inherited.
 
-## Planner Result
+## Planning Evidence
 
 ```text
 cycle_id: <generated cycle identity from sdd-cycle.json>
@@ -132,7 +132,7 @@ cycle_validation_result: <exit status plus concise stdout or stderr evidence>
 blockers: <unresolved condition, evidence, recovery tried, impact, and accountable next action>
 ```
 
-## Implementation Brief
+## Writing Assignment
 
 ```text
 objective: <bounded behavior or outcome from an approved task>
@@ -140,12 +140,12 @@ criteria: <applicable approved criterion identifiers and expected evidence>
 owned paths: <exclusive exact paths or path boundaries permitted for this assignment>
 prohibited paths: <exact paths or boundaries reserved for others or outside scope>
 dependencies: <completed prerequisites and permitted interfaces>
-base state: <branch, worktree or revision, artifact approval identity, and workspace condition>
+base state: <branch/worktree/revision, current artifact baseline and eligibility, workspace condition>
 checks: <tests, builds, lint, inspection, and expected result>
-delivery contract: <Implementer Result fields, evidence location, and handoff recipient>
+delivery contract: <Implementation Evidence fields, evidence location, and handoff recipient>
 ```
 
-## Implementer Result
+## Implementation Evidence
 
 ```text
 changed paths: <exact paths changed by this delivery>
@@ -181,3 +181,14 @@ Select exactly one Reviewer status:
 - `approved`: all required evidence and checks for the reviewed scope are complete and no correction finding remains. This is the Reviewer's verdict, not a user confirmation.
 - `corrections required`: one or more findings require a change before approval; the root chat routes bounded correction automatically.
 - `conditionally verified`: an environmental or access condition prevented a required check from completing; list it under `conditioned checks`. This status records incomplete verification and satisfies no approval gate. Resolve checks internally whenever the authorized runtime permits them.
+
+## Operational state and read-only CLI
+Main alone persists .sdd/cycles/<cycle_id>/state.json, events/ and evidence/ outside the governed manifest. Follow schemas/operational-state.schema.json and scripts/validate_state.py --help. The JSON schema is shipped under the skill root. Required fields include resume_state/correction_origin, planning_evidence/task_progress/verification_requirements, risk, versions, assignments, verification, reviews/findings and history. Pending progress is never an approved review. Only approved current independent final review with passing required checks and resolved findings permits complete.
+
+The external identity flags match validate_cycle.py; use --state with --transition to inspect eligibility, or read-only --capture planning|product. Product capture requires --base-revision and one --snapshot-scope regular JSON file in exact cycle evidence/: {schema_version:1,required_inputs:[relative-path],excluded_outputs:[{path:relative-path,kind:build|cache|temp,reason:nonempty-string}]}. No other input/exclusion flag family. Capture never writes or emits product contents. Main stores returned inventory/id. Scope hash is control metadata in snapshot exclusions, not a generated-output permission.
+
+Planning snapshots cover exact inventoried artifacts/manifest plus applicable bootstrap. Product snapshots cover pinned-base/current actual tracked/untracked regular content and required ignored dependencies; executable bits/add/delete count, staging alone does not. Exclude only exact active artifacts/control files and explicit justified output paths, never workspace_root/speckit_root/specs root/source/config/required dependencies. Reject unsupported file types, escaping links or ambiguous coverage; semantic dependency completeness remains independently assessed.
+
+Main creates immutable numbered hash-linked event files with full payload, writes/flushed temporary files, renames, then atomically replaces/flushed checkpoint referencing the committed event. Checkpoint is the commit point; orphan events never grant approval. A corrupt record does not reconstruct missing verdicts. Keep last consistent state or block. Local hashes are integrity checks, not authenticated attestations.
+
+Reviewer Result also includes reviewer_id, review_id, review_kind, planning_baseline_id and implementation_snapshot_id. Findings retain IDs and correction/resolution references; corrected is not resolved until Reviewer confirms. Preserve original results and checked version/command/exit evidence.

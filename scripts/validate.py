@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import json
 import re
 import subprocess
 import sys
@@ -16,20 +17,18 @@ SKILL = ROOT / "skills" / "sdd-workflow"
 AGENTS = ROOT / "agents"
 REFERENCE_NAMES = (
     "contracts.md",
-    "implementers.md",
+    "execution.md",
     "lifecycle-and-gates.md",
-    "orchestrator.md",
-    "planner.md",
+    "main.md",
+    "planning.md",
     "reviewer.md",
     "remote-memory.md",
     "sources-and-artifacts.md",
 )
 CANONICAL_AGENTS = {
-    "sdd-planner.toml": ("sdd-planner", "gpt-6.1-sol", "high", "workspace-write"),
-    "sdd-implementer-main.toml": ("sdd-implementer-main", "gpt-6.1-sol", "medium", "workspace-write"),
-    "sdd-implementer-simple.toml": ("sdd-implementer-simple", "gpt-6-luna", "max", "workspace-write"),
     "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6.1-sol", "high", "read-only"),
 }
+
 EXPECTED_FILES = (
     Path("README.md"),
     Path(".gitignore"),
@@ -47,6 +46,10 @@ EXPECTED_FILES = (
     Path("tests/test_delegation_policy.py"),
     Path("tests/test_remote_memory.py"),
     Path("tests/test_install.sh"),
+    Path("tests/test_state.py"),
+    Path("tests/test_snapshot.py"),
+    Path("skills/sdd-workflow/scripts/validate_state.py"),
+    Path("skills/sdd-workflow/schemas/operational-state.schema.json"),
 )
 USER_PATH = re.compile(r"/(?:Users|home)/[^/\\\s]+")
 PROJECT_PLACEHOLDER = re.compile(r"<(?:PROJECT|REPOSITORY|TEAM|USER)[A-Z0-9_-]*>")
@@ -164,11 +167,24 @@ def check_official_validator(errors: list[str]) -> None:
         errors.append(f"official skill validation failed: {message}")
 
 
+def check_state_schema(errors: list[str]) -> None:
+    path = SKILL / "schemas/operational-state.schema.json"
+    if not path.is_file():
+        return
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict) or not value.get("$schema"):
+            errors.append("invalid operational state schema: JSON Schema declaration required")
+    except (OSError, ValueError) as error:
+        errors.append(f"invalid operational state schema: {error}")
+
+
 def main() -> int:
     errors: list[str] = []
     check_layout(errors)
     check_skill_frontmatter(errors)
     check_agents(errors)
+    check_state_schema(errors)
     check_references(errors)
     check_portability(errors)
     if not errors:

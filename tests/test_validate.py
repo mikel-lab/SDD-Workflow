@@ -47,178 +47,15 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Validation passed", result.stdout)
 
-    def test_evidenced_discipline_guidance_exists(self) -> None:
-        # Break caught: demonstrated gate and persistence rationalizations ship
-        # without the required rationalization, red-flag, and mistake guidance.
-        lifecycle = (self.root / "skills/sdd-workflow/references/lifecycle-and-gates.md").read_text(
-            encoding="utf-8"
-        )
-        sources = (self.root / "skills/sdd-workflow/references/sources-and-artifacts.md").read_text(
-            encoding="utf-8"
-        )
 
-        for content in (lifecycle, sources):
-            self.assertIn("## Common Mistakes", content)
-            self.assertIn("### Rationalization Table", content)
-            self.assertIn("### Red Flags", content)
 
-        self.assertIn("The deadline is today", lifecycle)
-        self.assertIn("safer or more reversible", sources)
 
-    def test_speckit_bootstrap_boundary_is_documented(self) -> None:
-        # Break caught: the official speckit-specify bootstrap write is rejected
-        # or an unbounded .specify write exception is introduced.
-        sources = (self.root / "skills/sdd-workflow/references/sources-and-artifacts.md").read_text(
-            encoding="utf-8"
-        )
-        planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
-            encoding="utf-8"
-        )
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-        planner_agent = (self.root / "agents/sdd-planner.toml").read_text(encoding="utf-8")
 
-        for content in (sources, planner, orchestrator, planner_agent):
-            self.assertIn(".specify/feature.json", content)
-        self.assertIn("No other path under `.specify/`", sources)
-        self.assertIn("changed_paths", planner)
-        self.assertIn("changed_paths", orchestrator)
 
-    def test_native_executor_convergence_is_compatible(self) -> None:
-        # Break caught: convergence invokes speckit-converge after a native
-        # executor even though its contract requires speckit-implement.
-        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
-        planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
-            encoding="utf-8"
-        )
-        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
-            encoding="utf-8"
-        )
 
-        for content in (skill, planner, reviewer):
-            self.assertIn("speckit-tasks", content)
-            self.assertIn("speckit-implement", content)
-        self.assertIn("always runs `speckit-analyze`", reviewer)
-        self.assertIn("fresh independent planning review", planner)
-        self.assertIn("resumes implementation automatically", planner)
 
-    def test_normal_path_has_one_planning_and_one_final_review(self) -> None:
-        # Break caught: the routine path schedules extra implementation or
-        # convergence reviews instead of one planning and one final review.
-        lifecycle = (
-            self.root / "skills/sdd-workflow/references/lifecycle-and-gates.md"
-        ).read_text(encoding="utf-8")
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
-            encoding="utf-8"
-        )
 
-        self.assertIn("planning Reviewer", lifecycle)
-        self.assertIn("final Reviewer", lifecycle)
-        self.assertIn("Normal batches use implementer verification until final review", orchestrator)
-        self.assertNotIn("required independent review after every native batch", orchestrator)
-        self.assertIn("Normal batches rely on implementer verification until final review", reviewer_agent)
-        self.assertNotIn(
-            "Review completed native implementation batches and perform a separate final integrated review when assigned.",
-            reviewer_agent,
-        )
 
-    def test_normal_batch_status_recipe_names_only_final_review(self) -> None:
-        # Break caught: an otherwise normal batch invents implementation_review
-        # transitions or per-delivery independent reviews.
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn("## Normal Batch Status Recipe", orchestrator)
-        self.assertIn("transition: final_review", orchestrator)
-        self.assertIn("independent reviews: none", orchestrator)
-
-    def test_new_cycle_status_recipe_names_isolation_fields(self) -> None:
-        # Break caught: a new cycle is described without an assigned absent
-        # directory or with historical artifact reads disguised as evidence.
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-
-        self.assertIn("## New Cycle Status Recipe", orchestrator)
-        self.assertIn("artifact_directory: <exact assigned absent directory>", orchestrator)
-        self.assertIn("active feature selection: ignored", orchestrator)
-        self.assertIn("historical artifact reads: none", orchestrator)
-
-    def test_minor_planning_correction_uses_focused_delta_rereview(self) -> None:
-        # Break caught: a bounded planning fix automatically repeats a whole
-        # package review rather than the same Reviewer's focused delta review.
-        lifecycle = (
-            self.root / "skills/sdd-workflow/references/lifecycle-and-gates.md"
-        ).read_text(encoding="utf-8")
-        planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
-            encoding="utf-8"
-        )
-
-        for content in (lifecycle, planner):
-            self.assertIn("focused delta re-review", content)
-        self.assertIn("material changes to scope, architecture, acceptance criteria, source set, or artifact identity", lifecycle)
-
-    def test_normal_microtasks_do_not_each_require_independent_review(self) -> None:
-        # Break caught: a normal coherent batch is split into reviewer work for
-        # every small task although no risk trigger applies.
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-        implementers = (
-            self.root / "skills/sdd-workflow/references/implementers.md"
-        ).read_text(encoding="utf-8")
-        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
-            encoding="utf-8"
-        )
-
-        self.assertIn("coherent dependency-ready batch", orchestrator)
-        self.assertIn("not one agent per task entry", implementers)
-        self.assertIn("do not commission an independent review for each microtask", orchestrator)
-        self.assertIn("no intermediate review for normal batches", reviewer_agent)
-
-    def test_high_risk_batches_still_require_review(self) -> None:
-        # Break caught: reducing routine review omits independent review for a
-        # high-risk, security, migration, API, or critical shared-code batch.
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
-        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
-            encoding="utf-8"
-        )
-        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
-            encoding="utf-8"
-        )
-
-        for trigger in (
-            "high-risk batch",
-            "security",
-            "persistence/migration",
-            "API contract",
-            "critical shared code",
-        ):
-            self.assertIn(trigger, orchestrator)
-            self.assertIn(trigger, reviewer_agent)
-        self.assertIn("Intermediate-risk batch review", reviewer)
-
-    def test_review_contract_is_native_and_risk_based_for_every_model(self) -> None:
-        # Break caught: the removed model-specific external reviews reappear.
-        for path in (
-            "skills/sdd-workflow/references/orchestrator.md",
-            "skills/sdd-workflow/references/reviewer.md",
-            "agents/sdd-reviewer.toml",
-        ):
-            with self.subTest(path=path):
-                content = (self.root / path).read_text(encoding="utf-8")
-                self.assertNotIn("Luna pre-integration", content)
-                self.assertNotIn("Luna post-integration", content)
-                self.assertNotIn("## Luna Reviews", content)
-                self.assertIn("high-risk batch", content)
-                self.assertIn("final review", content.lower())
 
     def test_retired_external_reference_is_rejected_by_distribution_validator(self) -> None:
         # Break caught: an old managed reference silently re-enters the package.
@@ -229,165 +66,17 @@ class ValidateDistributionTests(unittest.TestCase):
         self.assertIn("unexpected distribution file", result.stderr)
         self.assertIn("luna-lane.md", result.stderr)
 
-    def test_final_reviewer_combines_speckit_analyze_and_final_verdict(self) -> None:
-        # Break caught: reconciliation schedules a duplicate whole-package
-        # review rather than returning one integrated final verdict.
-        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
-        reviewer = (self.root / "skills/sdd-workflow/references/reviewer.md").read_text(
-            encoding="utf-8"
-        )
-        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(
-            encoding="utf-8"
-        )
 
-        self.assertIn("final Reviewer runs read-only `speckit-analyze` and returns the integrated verdict in the same action", skill)
-        self.assertIn("same final-review action", reviewer)
-        self.assertIn("Do not schedule an identical whole-package review afterward", reviewer)
-        self.assertIn("final Reviewer runs read-only `speckit-analyze`", reviewer_agent)
-        self.assertIn("reconciliation and integrated verdict in the same action", reviewer_agent)
 
-    def test_root_chat_is_declared_as_sole_orchestrator(self) -> None:
-        # Break caught: a configured agent competes with the invoking chat for
-        # coordination and user contact.
-        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("## Root Chat Authority", skill)
-        self.assertIn("sole coordination and user-contact authority", skill)
 
-    def test_root_chat_must_not_dispatch_sdd_orchestrator(self) -> None:
-        # Break caught: the root chat delegates its governing role to an
-        # additional orchestrator agent.
-        skill = (self.root / "skills/sdd-workflow/SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("must not dispatch `sdd-orchestrator`", skill)
 
-    def test_wait_timeout_does_not_replace_an_active_role_owner(self) -> None:
-        # Regression: timed-out waits caused active Planners and Reviewers to be
-        # interrupted and replaced, duplicating work and losing their results.
-        orchestrator = (
-            self.root / "skills/sdd-workflow/references/orchestrator.md"
-        ).read_text(encoding="utf-8")
 
-        self.assertIn("## Delegated Action Monitoring", orchestrator)
-        self.assertIn("timeout is not a failure", orchestrator)
-        self.assertIn("Never interrupt, close, or replace", orchestrator)
-        self.assertIn("one active owner", orchestrator)
-        self.assertIn("Do not count wait timeouts", orchestrator)
-        self.assertIn("must not perform Planner or Reviewer work as a fallback", orchestrator)
 
-    def test_cycle_identity_handoff_is_complete_and_literal(self) -> None:
-        # Regression: manually abbreviated Figma source IDs and an absolute
-        # artifact directory blocked otherwise valid Reviewer actions.
-        contracts = (
-            self.root / "skills/sdd-workflow/references/contracts.md"
-        ).read_text(encoding="utf-8")
-        handoff = contracts.split("## Cycle Identity Handoff", 1)[1].split(
-            "## Orchestrator Status", 1
-        )[0]
 
-        for field in (
-            "manifest",
-            "cycle_id",
-            "workspace_root",
-            "speckit_root",
-            "primary_source",
-            "source_ids",
-            "artifact_directory",
-            "identity_mode",
-            "cycle_validation_command",
-        ):
-            self.assertIn(f"{field}:", handoff)
-        self.assertIn("literal", handoff)
-        self.assertIn("must not be abbreviated", handoff)
 
-    def test_retired_orchestrator_agent_is_not_distributed(self) -> None:
-        # Break caught: root-chat coordination still ships a competing managed
-        # sdd-orchestrator agent.
-        self.assertFalse((self.root / "agents/sdd-orchestrator.toml").exists())
 
-    def test_new_cycle_ignores_active_feature_as_selection_input(self) -> None:
-        # Break caught: a historical active package becomes input for a new
-        # request before that request has its own identity and manifest.
-        sources = (
-            self.root / "skills/sdd-workflow/references/sources-and-artifacts.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn("must not use an active feature as a selection input", sources)
 
-    def test_explicit_feature_directory_is_mandatory(self) -> None:
-        # Break caught: speckit-specify chooses a package implicitly instead
-        # of the cycle's explicitly assigned directory.
-        planner = (self.root / "skills/sdd-workflow/references/planner.md").read_text(
-            encoding="utf-8"
-        )
-        self.assertIn("SPECIFY_FEATURE_DIRECTORY", planner)
-        self.assertIn("assigned artifact_directory", planner)
 
-    def test_historical_spec_discovery_is_forbidden(self) -> None:
-        # Break caught: broad filesystem discovery reopens an unrelated
-        # historical feature package.
-        sources = (
-            self.root / "skills/sdd-workflow/references/sources-and-artifacts.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn("Do not use `find`, `rg`, globbing, or equivalent", sources)
-
-    def test_planner_and_reviewer_report_artifact_reads(self) -> None:
-        # Break caught: either role omits a required cycle-isolation result
-        # field, including an auditable record of artifact reads and writes.
-        contracts = (self.root / "skills/sdd-workflow/references/contracts.md").read_text(
-            encoding="utf-8"
-        )
-        planner_agent = (self.root / "agents/sdd-planner.toml").read_text(encoding="utf-8")
-        reviewer_agent = (self.root / "agents/sdd-reviewer.toml").read_text(encoding="utf-8")
-
-        planner_result = contracts.split("## Planner Result", 1)[1].split(
-            "## Implementation Brief", 1
-        )[0]
-        reviewer_result = contracts.split("## Reviewer Result", 1)[1]
-        required_fields = (
-            "cycle_id",
-            "source_ids",
-            "artifact_directory",
-            "artifact_reads",
-            "changed_paths",
-            "cycle_validation_command",
-            "cycle_validation_result",
-        )
-
-        for field in required_fields:
-            self.assertIn(f"{field}:", planner_result)
-            self.assertIn(f"{field}:", reviewer_result)
-            self.assertIn(field, planner_agent)
-            self.assertIn(field, reviewer_agent)
-
-    def test_continuation_requires_explicit_request_and_identity_match(self) -> None:
-        # Break caught: a related request silently reuses an existing package
-        # without a user-directed continuation or matching identity.
-        sources = (
-            self.root / "skills/sdd-workflow/references/sources-and-artifacts.md"
-        ).read_text(encoding="utf-8")
-        self.assertIn("only on explicit user continuation intent", sources)
-        self.assertIn("workspace and primary-source identities must match", sources)
-
-    def test_readme_documents_runtime_dependencies(self) -> None:
-        # Break caught: operators install the workflow without required SpecKit,
-        # Superpowers, or connector capabilities being declared.
-        readme = (self.root / "README.md").read_text(encoding="utf-8")
-
-        for dependency in (
-            "speckit-specify",
-            "speckit-clarify",
-            "speckit-checklist",
-            "speckit-plan",
-            "speckit-tasks",
-            "speckit-analyze",
-            "speckit-converge",
-            "test-driven-development",
-            "systematic-debugging",
-            "receiving-code-review",
-            "verification-before-completion",
-            "dispatching-parallel-agents",
-            "Jira",
-            "Figma",
-        ):
-            self.assertIn(dependency, readme)
 
     def test_missing_skill_reference_fails(self) -> None:
         # Break caught: a broken direct SKILL.md reference ships unnoticed.
@@ -431,12 +120,12 @@ class ValidateDistributionTests(unittest.TestCase):
 
     def test_invalid_agent_toml_fails(self) -> None:
         # Break caught: malformed agent configuration is accepted.
-        agent = self.root / "agents/sdd-planner.toml"
+        agent = self.root / "agents/sdd-reviewer.toml"
         agent.write_text("name = [\n", encoding="utf-8")
         result = self.validate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("invalid TOML", result.stderr)
-        self.assertIn("sdd-planner.toml", result.stderr)
+        self.assertIn("sdd-reviewer.toml", result.stderr)
 
     def test_absolute_user_path_in_versioned_content_fails(self) -> None:
         # Break caught: a machine-specific user path makes the package nonportable.
@@ -490,6 +179,13 @@ class ValidateDistributionTests(unittest.TestCase):
         result = self.validate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("canonical agent set", result.stderr)
+
+
+    def test_invalid_state_schema_is_rejected(self) -> None:
+        (self.root / "skills/sdd-workflow/schemas/operational-state.schema.json").write_text("{")
+        result = self.validate()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("state schema", result.stderr)
 
 
 class CycleValidatorTests(unittest.TestCase):

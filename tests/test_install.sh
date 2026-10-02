@@ -31,13 +31,13 @@ assert_not_exists() {
 test_validation_precedes_writes() {
   # Break caught: an invalid source mutates a destination before rejection.
   local home="$temp_root/validation-first"
-  printf 'name = [\n' >"$distribution/agents/sdd-planner.toml"
+  printf 'name = [\n' >"$distribution/agents/sdd-reviewer.toml"
   if run_install "$home" >"$temp_root/validation.out" 2>&1; then
     fail 'invalid distribution unexpectedly installed'
   fi
   assert_not_exists "$home/skills/sdd-workflow"
   assert_not_exists "$home/agents"
-  cp "$source_root/agents/sdd-planner.toml" "$distribution/agents/sdd-planner.toml"
+  cp "$source_root/agents/sdd-reviewer.toml" "$distribution/agents/sdd-reviewer.toml"
 }
 
 test_incompatible_explicit_python_fails_before_validation_or_writes() {
@@ -60,9 +60,9 @@ test_fresh_install() {
   assert_file "$home/skills/sdd-workflow/SKILL.md"
   local count
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
-  [[ $count == 4 ]] || fail "expected four managed agents, got $count"
+  [[ $count == 1 ]] || fail "expected one managed agent, got $count"
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-implementer-*.toml' -type f | wc -l | tr -d ' ')
-  [[ $count == 2 ]] || fail "expected two implementer profiles, got $count"
+  [[ $count == 0 ]] || fail "expected zero implementer profiles, got $count"
   count=$(find "$home/skills/sdd-workflow/references" -maxdepth 1 -name '*.md' -type f | wc -l | tr -d ' ')
   [[ $count == 8 ]] || fail "expected eight references, got $count"
   assert_file "$home/skills/sdd-workflow/references/remote-memory.md"
@@ -77,18 +77,18 @@ test_reinstall_backs_up_managed_destinations() {
   local home="$temp_root/reinstall"
   run_install "$home"
   printf 'previous-skill\n' >"$home/skills/sdd-workflow/previous.txt"
-  printf 'previous-agent\n' >"$home/agents/sdd-planner.toml"
+  printf 'previous-agent\n' >"$home/agents/sdd-reviewer.toml"
   run_install "$home"
   local backup
   backup=$(find "$home/backups" -type d -name 'sdd-workflow-*' -print -quit)
   [[ -n $backup ]] || fail 'expected an installation backup'
   assert_file "$backup/skills/sdd-workflow/previous.txt"
-  [[ $(cat "$backup/agents/sdd-planner.toml") == previous-agent ]] || fail 'agent backup lost original bytes'
+  [[ $(cat "$backup/agents/sdd-reviewer.toml") == previous-agent ]] || fail 'agent backup lost original bytes'
 }
 
 test_upgrade_backs_up_and_retires_orchestrator() {
   # Break caught: an upgrade deletes the exact retired file without backup or
-  # leaves it active after installing the four-agent distribution.
+  # leaves it active after installing the one-profile distribution.
   local home="$temp_root/retire-orchestrator"
   local expected="$temp_root/previous-orchestrator.toml"
   mkdir -p "$home/agents"
@@ -104,7 +104,7 @@ test_upgrade_backs_up_and_retires_orchestrator() {
 
 test_upgrade_backs_up_and_retires_high_implementer() {
   # Break caught: the third implementer remains active, or its previous bytes
-  # and the retained profiles are not preserved during a five-to-four upgrade.
+  # and the retained profiles are not preserved during a five-to-one upgrade.
   local home="$temp_root/retire-high"
   local previous="$temp_root/previous-five-agents"
   mkdir -p "$home/agents" "$previous"
@@ -121,8 +121,8 @@ test_upgrade_backs_up_and_retires_high_implementer() {
   done
   assert_not_exists "$home/agents/sdd-implementer-high.toml"
   count=$(find "$home/agents" -maxdepth 1 -name 'sdd-*.toml' -type f | wc -l | tr -d ' ')
-  [[ $count == 4 ]] || fail "upgrade left an incorrect agent count: $count"
-  for agent in sdd-planner sdd-reviewer sdd-implementer-main sdd-implementer-simple; do
+  [[ $count == 1 ]] || fail "upgrade left an incorrect agent count: $count"
+  for agent in sdd-reviewer; do
     cmp -s "$source_root/agents/$agent.toml" "$home/agents/$agent.toml" || fail "upgraded profile differs: $agent"
   done
 }
@@ -142,7 +142,7 @@ test_upgrade_removes_retired_reference_after_backup() {
   assert_not_exists "$home/skills/sdd-workflow/references/luna-lane.md"
   cmp -s "$source_root/skills/sdd-workflow/SKILL.md" "$home/skills/sdd-workflow/SKILL.md" || fail 'installed skill differs from source'
   local agent
-  for agent in sdd-planner sdd-implementer-main sdd-implementer-simple sdd-reviewer; do
+  for agent in sdd-reviewer; do
     cmp -s "$source_root/agents/$agent.toml" "$home/agents/$agent.toml" || fail "installed profile differs: $agent"
   done
 }
@@ -176,12 +176,50 @@ test_dry_run_reports_retirement_and_writes_nothing() {
   run_install "$home" --dry-run >"$temp_root/dry-run.out"
   grep -F 'would retire sdd-orchestrator.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report orchestrator retirement'
   grep -F 'would retire sdd-implementer-high.toml' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run did not report high implementer retirement'
-  grep -F '4 managed agents' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run reported incorrect agent count'
+  grep -F '1 managed agents' "$temp_root/dry-run.out" >/dev/null || fail 'dry-run reported incorrect agent count'
   [[ $(cksum "$home/agents/sdd-orchestrator.toml") == "$before" ]] || fail 'dry-run changed retired agent'
   [[ $(cksum "$home/agents/sdd-implementer-high.toml") == "$high_before" ]] || fail 'dry-run changed retired high implementer'
   [[ $(cksum "$home/skills/sdd-workflow/references/luna-lane.md") == "$reference_before" ]] || fail 'dry-run changed retired reference'
   assert_not_exists "$home/skills/sdd-workflow/SKILL.md"
   assert_not_exists "$home/backups"
+}
+
+test_upgrade_known_layouts_and_rollback() {
+  local count agent backup scenario_home original restored index
+  local names=(sdd-reviewer sdd-planner sdd-implementer-simple sdd-implementer-main sdd-implementer-high sdd-orchestrator)
+  for count in 4 5 6; do
+    scenario_home="$temp_root/layout-$count"
+    original="$temp_root/original-$count"
+    restored="$temp_root/restored-$count"
+    mkdir -p "$scenario_home/agents" "$scenario_home/skills/sdd-workflow" "$original"
+    printf 'original-skill-bytes\n' >"$scenario_home/skills/sdd-workflow/legacy.txt"
+    printf 'unmanaged-custom-bytes\n' >"$scenario_home/agents/sdd-custom.toml"
+    index=0
+    while [[ $index -lt $count ]]; do
+      agent=${names[$index]}
+      printf 'original-%s-bytes\n' "$agent" >"$original/$agent.toml"
+      cp "$original/$agent.toml" "$scenario_home/agents/$agent.toml"
+      index=$((index+1))
+    done
+    run_install "$scenario_home" >"$temp_root/layout-$count.out"
+    backup=$(find "$scenario_home/backups" -type d -name 'sdd-workflow-*' -print -quit)
+    [[ -n $backup ]] || fail "missing layout-$count backup"
+    cmp -s "$source_root/agents/sdd-reviewer.toml" "$scenario_home/agents/sdd-reviewer.toml" || fail 'new Reviewer differs'
+    for agent in sdd-planner sdd-implementer-main sdd-implementer-simple sdd-implementer-high sdd-orchestrator; do
+      assert_not_exists "$scenario_home/agents/$agent.toml"
+    done
+    [[ $(cat "$scenario_home/agents/sdd-custom.toml") == unmanaged-custom-bytes ]] || fail 'custom profile changed'
+    mkdir -p "$restored/agents" "$restored/skills"
+    cp -R "$backup/skills/sdd-workflow" "$restored/skills/"
+    index=0
+    while [[ $index -lt $count ]]; do
+      agent=${names[$index]}
+      cp "$backup/agents/$agent.toml" "$restored/agents/$agent.toml"
+      cmp -s "$original/$agent.toml" "$restored/agents/$agent.toml" || fail "rollback lost bytes: $agent"
+      index=$((index+1))
+    done
+    [[ $(cat "$restored/skills/sdd-workflow/legacy.txt") == original-skill-bytes ]] || fail 'rollback lost skill'
+  done
 }
 
 test_validation_precedes_writes
@@ -193,4 +231,5 @@ test_upgrade_backs_up_and_retires_high_implementer
 test_upgrade_removes_retired_reference_after_backup
 test_unmanaged_agents_are_unchanged
 test_dry_run_reports_retirement_and_writes_nothing
-printf 'install tests passed (9 scenarios)\n'
+test_upgrade_known_layouts_and_rollback
+printf 'install tests passed (12 scenarios including legacy rollback)\n'

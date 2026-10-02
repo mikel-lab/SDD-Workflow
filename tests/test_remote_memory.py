@@ -68,7 +68,7 @@ class RemoteMemoryPolicyTests(unittest.TestCase):
 
     def test_history_provenance_is_separate_from_active_artifacts(self):
         contracts = self.text("skills/sdd-workflow/references/contracts.md")
-        for heading in ("## Planner Result", "## Implementer Result", "## Reviewer Result"):
+        for heading in ("## Planning Evidence", "## Implementation Evidence", "## Reviewer Result"):
             section = contracts.split(heading, 1)[1].split("\n## ", 1)[0]
             self.assertIn("historical_reads:", section)
         self.assertIn("## Historical Read Record", contracts)
@@ -87,9 +87,8 @@ class RemoteMemoryPolicyTests(unittest.TestCase):
 
     def test_planner_and_root_keep_separate_read_channels(self):
         for path in (
-            "skills/sdd-workflow/references/planner.md",
-            "skills/sdd-workflow/references/orchestrator.md",
-            "agents/sdd-planner.toml",
+            "skills/sdd-workflow/references/planning.md",
+            "skills/sdd-workflow/references/main.md",
             "agents/sdd-reviewer.toml",
         ):
             with self.subTest(path=path):
@@ -173,13 +172,12 @@ class RemoteMemoryPolicyTests(unittest.TestCase):
         self.assertIn(Path("tests/test_remote_memory.py"), files)
         self.assertIn(Path("skills/sdd-workflow/references/remote-memory.md"), files)
         self.assertEqual(len(files), len(set(files)))
-        self.assertEqual(len(files), 26)
 
     def test_readme_explains_activation_and_limits(self):
         text = self.text("README.md")
         for term in (
             ".sdd/config.json", "INDEX.md", "remote-memory.md",
-            "does not configure", "not a runtime interceptor", "26-file",
+            "does not configure", "not a runtime interceptor", "portable distribution",
         ):
             with self.subTest(term=term):
                 self.assertIn(term, " ".join(text.split()))

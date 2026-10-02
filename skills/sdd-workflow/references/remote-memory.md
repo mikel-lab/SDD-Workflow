@@ -79,8 +79,8 @@ A lookup is never continuation. Do not copy an old manifest, adopt its cycle ID,
 reactivate its tasks, import it into the current artifact inventory, or alter
 `source_ids` to disguise the read. Unknown integration state is not proof of
 implementation. An old decision never overrides explicit current requirements.
-If a conclusion changes current planning, the Planner incorporates it explicitly
-with provenance; a changed frozen baseline returns through normal planning review.
+If a conclusion changes current planning, Main incorporates it explicitly
+with provenance; a changed frozen baseline follows normal planning review rules: revalidate and reassess risk; independent planning review is required only when triggered or escalated.
 If optional history is unavailable, continue without it; never invent its contents.
 Only an indispensable unresolved question can block the affected development work.
 
@@ -88,7 +88,7 @@ Only an indispensable unresolved question can block the affected development wor
 
 After final approval and final cycle validation, the root chat is the single
 publishing owner. It may perform this administrative operation without becoming
-Planner or Reviewer. Publish before the final user report, in the same session.
+planning or review. Publish before the final user report, in the same session.
 No PR, merge, commit hook or separate agent is required. Read the configured
 index to update the catalog, not to inject old documentation into the task.
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "SDD Workflow"
-  short_description: "Planifica, implementa y revisa ciclos SDD"
-  default_prompt: "Usa $sdd-workflow para convertir esta tarea en un ciclo SDD gobernado y detenerte en el gate correspondiente."
+  short_description: "Main ejecuta SDD con revisión independiente"
+  default_prompt: "Usa $sdd-workflow para completar esta tarea dentro de su alcance, respetando los gates y la revisión independiente."
