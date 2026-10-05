@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'skills/sdd-workflow/scripts/validate_state.py'
 
@@ -67,6 +68,108 @@ class Fixture(unittest.TestCase):
 
 
 class SnapshotTests(Fixture):
+    def ignored_checkout(self):
+        checkout = self.root / 'cache/embedded checkout'
+        checkout.mkdir(parents=True)
+        subprocess.run(['git', 'init', '-q', str(checkout)], check=True, capture_output=True)
+        (checkout / 'input.dat').write_bytes(b'dependency')
+        return checkout
+
+    def test_ignored_embedded_checkout_summary_is_an_explicit_unverified_omission(self):
+        self.ignored_checkout()
+        raw = self.git('ls-files', '--others', '--ignored', '--exclude-standard', '-z').stdout
+        self.assertIn('cache/embedded checkout/\0', raw)
+        snap = self.capture()
+        self.assertNotIn('cache/embedded checkout/input.dat', {i['path'] for i in snap['inventory']})
+        omission = next(e for e in snap['exclusions'] if e['path'] == 'cache' and e['kind'] == 'ignored')
+        self.assertIn('semantic completeness unproven', omission['reason'])
+
+    def test_unneeded_ignored_framework_links_are_omitted_without_following(self):
+        framework = self.root / 'cache/binary.framework'
+        framework.mkdir(parents=True)
+        (framework / 'Versions').symlink_to('/outside-never-read', target_is_directory=True)
+        snap = self.capture()
+        self.assertTrue(any(e['path'] == 'cache' and e['kind'] == 'ignored' for e in snap['exclusions']))
+        self.assertFalse(any(i['path'].startswith('cache/') for i in snap['inventory']))
+
+    def test_required_file_inside_ignored_summary_changes_identity_without_ancestor_omission(self):
+        checkout = self.ignored_checkout()
+        self.write_scope(['cache/embedded checkout/input.dat'])
+        before = self.capture()
+        self.assertIn('cache/embedded checkout/input.dat', {i['path'] for i in before['inventory']})
+        self.assertFalse(any(e['path'] in ('cache', 'cache/embedded checkout') for e in before['exclusions']))
+        (checkout / 'input.dat').write_bytes(b'changed dependency')
+        self.assertNotEqual(self.capture()['id'], before['id'])
+
+    def test_ignored_directory_output_cannot_conceal_source_in_embedded_checkout(self):
+        checkout = self.ignored_checkout()
+        (checkout / 'module.py').write_text('source')
+        self.write_scope(outputs=[{'path': 'cache', 'kind': 'build', 'reason': 'claimed generated'}])
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('source/config/resource output exclusion is forbidden', result.stderr)
+
+    def test_required_ignored_tree_rejects_links_and_fifo(self):
+        checkout = self.ignored_checkout()
+        self.write_scope(['cache'])
+        link = checkout / 'link'
+        link.symlink_to('/outside-never-read')
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        link.unlink()
+        os.mkfifo(checkout / 'pipe')
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+
+    def test_tracked_and_reincluded_source_inside_ignored_tree_stays_covered(self):
+        cache = self.root / 'cache'
+        cache.mkdir()
+        (cache / 'tracked.py').write_text('tracked source')
+        self.git('add', '-f', 'cache/tracked.py')
+        (self.root / '.gitignore').write_text('cache/*\n!cache/visible.py\n')
+        (cache / 'visible.py').write_text('untracked source')
+        (cache / 'other.bin').write_bytes(b'ignored output')
+        snap = self.capture()
+        paths = {i['path'] for i in snap['inventory']}
+        self.assertIn('cache/tracked.py', paths)
+        self.assertIn('cache/visible.py', paths)
+        self.assertFalse(any(e['path'] == 'cache' for e in snap['exclusions']))
+        (cache / 'pipe').symlink_to('/outside-never-read')
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+
+    def test_ignored_summary_parser_rejects_malformed_duplicates_and_invalid_types(self):
+        # Real Git cannot emit these corrupt records: inject only its byte boundary,
+        # leaving the production parser and real filesystem validation intact.
+        sys.path.insert(0, str(SCRIPT.parent))
+        self.addCleanup(lambda: sys.path.remove(str(SCRIPT.parent)))
+        from validate_state import Context, Invalid
+        context = Context.__new__(Context)
+        context.workspace = self.root
+        (self.root / 'cache').mkdir()
+        (self.root / 'cache-link').symlink_to('/outside-never-read', target_is_directory=True)
+        os.mkfifo(self.root / 'pipe')
+        records = [b'/absolute/\0', b'../escape/\0', b'cache//\0', b'cache/./\0',
+                   b'cache/../escape/\0', b'\0', b'cache/\0cache/\0',
+                   b'cache\0cache/\0', b'cache/\0cache\0', b'cache-link/\0',
+                   b'pipe/\0', b'src/main.py/\0', b'missing/\0', b'cache/', b'\xff\0']
+        for raw in records:
+            with self.subTest(raw=raw), patch.object(context, 'git', return_value=raw):
+                with self.assertRaises(Invalid):
+                    context.git_names('ls-files', ignored_directories=set())
+        with patch.object(context, 'git', return_value=b'cache/\0'):
+            with self.assertRaises(Invalid):
+                context.git_names('ls-files')  # Directory terminators are not regular filenames.
+
+    def test_ignored_summary_keeps_literal_whitespace_filename(self):
+        name = 'cache/space and\nnewline'
+        directory = self.root / name
+        directory.mkdir(parents=True)
+        self.write_scope([name])
+        (directory / 'input.dat').write_bytes(b'whitespace dependency')
+        snap = self.capture()
+        self.assertIn(name + '/input.dat', {i['path'] for i in snap['inventory']})
+
     def test_real_capture_covers_colocated_source_untracked_and_exact_artifacts(self):
         (self.root / 'specs/other.txt').write_text('other source')
         (self.root / '.specify/config.txt').write_text('configuration')
