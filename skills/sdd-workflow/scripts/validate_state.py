@@ -258,9 +258,26 @@ class Context:
                 'Git input unavailable: ' + result.stderr.decode('utf-8', errors='replace').strip(), 3)
         return result.stdout
 
-    def git_names(self, *args):
+    def git_names(self, *args, ignored_directories=None):
+        data = self.git(*args)
+        require(not data or data.endswith(b'\0'), 'INPUT_UNSUPPORTED', self.workspace,
+                'unterminated Git filename record', 3)
+        names = set()
         try:
-            return {relative_path(n.decode('utf-8')) for n in self.git(*args).split(b'\0') if n}
+            for encoded in data.split(b'\0')[:-1]:
+                value = encoded.decode('utf-8')
+                is_directory = ignored_directories is not None and value.endswith('/')
+                # Git's ignored directory summary has exactly one slash terminator.
+                # Validate the remaining components; do not normalize arbitrary paths.
+                name = relative_path(value[:-1] if is_directory else value)
+                require(name not in names, 'SCHEMA_INVALID', name, 'duplicate Git filename record')
+                if is_directory:
+                    path = safe_path(self.workspace, name)
+                    require(path.is_dir(), 'INPUT_UNSUPPORTED', name,
+                            'ignored summary must name an existing nonsymlink directory', 3)
+                    ignored_directories.add(name)
+                names.add(name)
+            return names
         except UnicodeError as error:
             raise Invalid('INPUT_UNSUPPORTED', self.workspace, 'non-UTF-8 Git filename', 3) from error
 
@@ -323,7 +340,9 @@ class Context:
         controls = self.control_exclusions()
         tracked = self.git_names('ls-files', '--cached', '-z')
         untracked = self.git_names('ls-files', '--others', '--exclude-standard', '-z')
-        ignored = self.git_names('ls-files', '--others', '--ignored', '--exclude-standard', '-z')
+        ignored_directories = set()
+        ignored = self.git_names('ls-files', '--others', '--ignored', '--exclude-standard',
+                                 '--directory', '-z', ignored_directories=ignored_directories)
         # Index mode inspection catches submodules even when their working directories look regular.
         for entry in self.git('ls-files', '--stage', '-z').split(b'\0'):
             if not entry:
@@ -352,6 +371,12 @@ class Context:
             hidden = {n for n in tracked | untracked | ignored
                       if n == output['path'] or n.startswith(output['path'] + '/')}
             self_path = output['path']
+            # A Git directory summary does not enumerate its source/config leaves.
+            # Inspect an explicit output before permitting it to hide that subtree.
+            if any(overlaps(self_path, n) for n in ignored_directories):
+                path = safe_path(self.workspace, self_path)
+                if path.exists():
+                    hidden |= self.expand(self_path)
             require(not any(PurePosixPath(n).suffix.lower() in source_suffixes for n in hidden | {self_path}),
                     'SCHEMA_INVALID', self_path, 'source/config/resource output exclusion is forbidden')
         expanded = set()
@@ -365,6 +390,12 @@ class Context:
             return any(name == c or name.startswith(c + '/') for c in controls) or any(
                 name == o['path'] or name.startswith(o['path'] + '/') for o in outputs)
 
+        protected = tracked | untracked | set(required) | set(controls)
+        opaque_ignored = {name for name in ignored_directories
+                          if not any(overlaps(name, other) for other in protected)}
+        # Nonopaque summaries overlap included inputs. Their residual regular leaves
+        # get individual ignored records, never an ancestor omission over a dependency.
+        ignored_leaves = ignored - ignored_directories
         # Git omits FIFOs/devices from ls-files --others. Inspect the covered filesystem
         # independently so an unsupported untracked entry cannot disappear from evidence.
         for current, directories, filenames in os.walk(self.workspace, followlinks=False):
@@ -378,7 +409,11 @@ class Context:
                 require(stat.S_ISREG(mode) or stat.S_ISDIR(mode), 'INPUT_UNSUPPORTED', name,
                         'covered symlink/device/FIFO/socket is unsupported', 3)
                 if child in directories:
-                    keep.append(child)
+                    if name not in opaque_ignored:
+                        keep.append(child)
+                elif any(name.startswith(n + '/') for n in ignored_directories - opaque_ignored):
+                    if name not in tracked | untracked:
+                        ignored_leaves.add(name)
             directories[:] = keep
         names = {n for n in tracked | untracked | expanded if not excluded(n)}
         inventory = []
@@ -387,10 +422,12 @@ class Context:
             if not path.exists() and name in tracked and name not in expanded:
                 continue  # Real tracked deletion, reflected against pinned tree below.
             inventory.append(file_item(path, name, executable=True))
-        for name in byte_sorted(ignored - expanded):
+        for name in byte_sorted((ignored_leaves | opaque_ignored) - expanded):
             if not excluded(name):
                 exclusions.append({'path': name, 'kind': 'ignored',
-                                   'reason': 'ignored input not declared required; semantic completeness unproven'})
+                                   'reason': ('ignored directory contents not inspected or hashed; '
+                                              'semantic completeness unproven' if name in opaque_ignored else
+                                              'ignored input not declared required; semantic completeness unproven')})
         current = {i['path']: i for i in inventory}
         base_items = {}
         for entry in self.git('ls-tree', '-r', '-z', base).split(b'\0'):
