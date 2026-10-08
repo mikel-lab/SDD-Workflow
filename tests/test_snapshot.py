@@ -433,5 +433,231 @@ class ProtectedIgnoredDependencyTests(Fixture):
         self.assertEqual(caught.exception.code, 'INPUT_UNSUPPORTED')
 
 
+class RequiredFileAliasTests(Fixture):
+    alias_name = 'cache/sdk/include/header.h'
+    target_name = 'cache/sdk/Source/header.h'
+
+    def alias_fixture(self):
+        source = self.root / 'cache/sdk/Source'
+        source.mkdir(parents=True)
+        (source / 'header.h').write_bytes(b'header bytes')
+        (source / 'other.h').write_bytes(b'header bytes')
+        alias = self.root / self.alias_name
+        alias.parent.mkdir()
+        alias.symlink_to('../Source/header.h')
+        self.alias_scope()
+        return alias, source
+
+    def alias_scope(self, aliases=None, required=None, outputs=None):
+        self.scope.write_text(json.dumps({'schema_version': 2,
+            'required_inputs': required if required is not None else ['cache/sdk/Source'],
+            'required_file_aliases': aliases if aliases is not None else [self.alias_name],
+            'excluded_outputs': outputs or []}))
+
+    def reject_capture(self, code=None):
+        result = self.cli('--capture', 'product', '--base-revision', self.base,
+                          '--snapshot-scope', str(self.scope), '--json')
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        report = json.loads(result.stdout)
+        self.assertFalse(report['valid'])
+        if code:
+            self.assertIn(code, {e['code'] for e in report['errors']})
+        return report
+
+    def test_declared_alias_binds_required_bytes_without_ignored_ancestor(self):
+        self.alias_fixture()
+        snap = self.capture()
+        self.assertEqual(snap['file_aliases'], [{'path': self.alias_name,
+            'link_target': '../Source/header.h', 'resolved_path': self.target_name}])
+        item = next(i for i in snap['inventory'] if i['path'] == self.target_name)
+        self.assertEqual(item['sha256'], hashlib.sha256(b'header bytes').hexdigest())
+        self.assertEqual(item['size'], 12)
+        self.assertNotIn(self.alias_name, {i['path'] for i in snap['inventory']})
+        for omission in snap['exclusions']:
+            if omission['kind'] == 'ignored':
+                self.assertFalse(self.alias_name == omission['path'] or
+                                 self.alias_name.startswith(omission['path'] + '/'))
+
+    def test_binding_raw_spelling_target_bytes_and_mode_change_identity(self):
+        alias, source = self.alias_fixture()
+        initial = self.capture()['id']
+        for target in ['../Source/other.h', '../Source/./header.h', '../Source/../Source/header.h']:
+            with self.subTest(target=target):
+                alias.unlink()
+                alias.symlink_to(target)
+                self.assertNotEqual(self.capture()['id'], initial)
+        alias.unlink()
+        alias.symlink_to('../Source/header.h')
+        self.assertEqual(self.capture()['id'], initial)
+        (source / 'header.h').write_bytes(b'different header')
+        self.assertNotEqual(self.capture()['id'], initial)
+        (source / 'header.h').write_bytes(b'header bytes')
+        (source / 'header.h').chmod(0o755)
+        self.assertNotEqual(self.capture()['id'], initial)
+
+    def test_safe_real_directory_then_parent_target_is_allowed(self):
+        alias, source = self.alias_fixture()
+        (source / 'real').mkdir()
+        alias.unlink()
+        alias.symlink_to('../Source/real/../header.h')
+        snap = self.capture()
+        self.assertEqual(snap['file_aliases'][0]['resolved_path'], self.target_name)
+        self.assertEqual(snap['file_aliases'][0]['link_target'], '../Source/real/../header.h')
+
+    def test_literal_jump_parent_rejects_symlink_missing_and_file_components(self):
+        alias, source = self.alias_fixture()
+        (source / 'jump-link').symlink_to(source, target_is_directory=True)
+        (source / 'jump-file').write_bytes(b'not directory')
+        # The unsafe siblings are outside the required individual files.
+        self.alias_scope(required=[self.target_name, 'cache/sdk/Source/other.h'])
+        for jump in ['jump-link', 'jump-missing', 'jump-file']:
+            with self.subTest(jump=jump):
+                alias.unlink()
+                alias.symlink_to('../Source/' + jump + '/../header.h')
+                self.reject_capture('INPUT_UNSUPPORTED')
+
+    def test_escape_then_return_is_rejected_at_escape_component(self):
+        alias, _ = self.alias_fixture()
+        alias.unlink()
+        alias.symlink_to('../../../../' + self.root.name + '/' + self.target_name)
+        self.reject_capture('INPUT_UNSUPPORTED')
+
+    def test_unsafe_binding_types_targets_and_spellings_fail_closed(self):
+        alias, source = self.alias_fixture()
+        (source / 'chain.h').symlink_to('header.h')
+        self.alias_scope(required=[self.target_name, 'cache/sdk/Source/other.h'])
+        targets = ['/absolute', '../Source/missing.h', '../Source/chain.h', '../Source',
+                   '../Source/header.h/', '', '../Source\\header.h', '../Source/\udcff.h',
+                   '../../../.sdd/cycles/fixture/evidence/scope.json']
+        for target in targets:
+            with self.subTest(target=repr(target)):
+                alias.unlink()
+                if '\udcff' in target:
+                    # APFS cannot create non-UTF8 targets: inject the readlink byte boundary.
+                    sys.path.insert(0, str(SCRIPT.parent))
+                    try:
+                        from validate_state import Context, Invalid
+                        context = Context.__new__(Context)
+                        context.workspace = self.root
+                        alias.symlink_to('../Source/header.h')
+                        with patch('os.readlink', return_value=target):
+                            with self.assertRaises(Invalid):
+                                context.file_alias(self.alias_name, {self.target_name})
+                    finally:
+                        sys.path.remove(str(SCRIPT.parent))
+                elif target:
+                    alias.symlink_to(target)
+                    self.reject_capture()
+                else:
+                    alias.write_bytes(b'regular alias is forbidden')
+                    self.reject_capture('INPUT_UNSUPPORTED')
+
+    def test_target_must_be_explicitly_required_even_if_tracked(self):
+        alias, _ = self.alias_fixture()
+        alias.unlink()
+        alias.symlink_to('../../../src/main.py')
+        self.reject_capture('SCHEMA_INVALID')
+
+    def test_alias_paths_reject_duplicate_unsafe_and_ordinary_input_overlap(self):
+        self.alias_fixture()
+        for aliases in [[self.alias_name, self.alias_name], ['../escape'], ['/absolute'],
+                        ['cache//header.h'], ['cache/./header.h'], ['cache\\header.h'], ['cache/\udcff.h']]:
+            with self.subTest(aliases=repr(aliases)):
+                self.alias_scope(aliases=aliases)
+                self.reject_capture()
+        self.alias_scope(required=['cache/sdk'])
+        self.reject_capture('SCHEMA_INVALID')
+
+    def test_alias_parent_symlink_and_control_alias_rejected(self):
+        alias, _ = self.alias_fixture()
+        alternate = self.root / 'cache/sdk/alternate'
+        alternate.symlink_to('include', target_is_directory=True)
+        self.alias_scope(aliases=['cache/sdk/alternate/header.h'])
+        self.reject_capture('INPUT_UNSUPPORTED')
+        control_alias = self.control / 'evidence/header.h'
+        control_alias.symlink_to('../../../../src/main.py')
+        self.alias_scope(aliases=['.sdd/cycles/fixture/evidence/header.h'], required=['src/main.py'])
+        self.reject_capture('SCHEMA_INVALID')
+
+    def test_alias_output_and_ancestor_exclusion_rejected(self):
+        self.alias_fixture()
+        for name in [self.alias_name, 'cache/sdk/include', 'cache']:
+            with self.subTest(name=name):
+                self.alias_scope(outputs=[{'path': name, 'kind': 'cache', 'reason': 'claimed output'}])
+                self.reject_capture()
+
+    def test_undeclared_protected_alias_still_rejected(self):
+        alias, source = self.alias_fixture()
+        extra = source / 'undeclared.h'
+        extra.symlink_to('header.h')
+        self.reject_capture('INPUT_UNSUPPORTED')
+        extra.unlink()
+        self.write_scope(required=[self.alias_name])
+        self.reject_capture('INPUT_UNSUPPORTED')
+
+    def test_legacy_shape_and_scope_versions_remain_strict(self):
+        before = self.capture()
+        self.assertNotIn('file_aliases', before)
+        self.assertEqual(before['id'], digest({k: v for k, v in before.items() if k != 'id'}))
+        raw = json.loads(self.scope.read_text())
+        raw['required_file_aliases'] = []
+        self.scope.write_text(json.dumps(raw))
+        self.reject_capture('SCHEMA_INVALID')
+        raw['schema_version'] = 2
+        self.scope.write_text(json.dumps(raw))
+        self.assertNotIn('file_aliases', self.capture())
+        del raw['required_file_aliases']
+        self.scope.write_text(json.dumps(raw))
+        self.reject_capture('SCHEMA_INVALID')
+
+    def test_tracked_alias_is_explicitly_bound_and_staging_preserves_identity(self):
+        alias, _ = self.alias_fixture()
+        before = self.capture()
+        self.git('add', '-f', self.alias_name)
+        self.assertEqual(self.capture()['id'], before['id'])
+        self.git('commit', '-qm', 'explicit alias')
+        self.assertEqual(self.capture()['id'], before['id'])
+        self.base = self.git('rev-parse', 'HEAD').stdout.strip()
+        snap = self.capture()
+        self.assertNotIn(self.alias_name, snap['deleted_paths'])
+        self.assertNotIn(self.alias_name, snap['changed_paths'])
+        alias.unlink()
+        alias.symlink_to('../Source/other.h')
+        self.assertIn(self.alias_name, self.capture()['changed_paths'])
+
+    def test_nonignored_alias_and_multiple_bindings_are_captured_in_path_order(self):
+        self.alias_fixture()
+        (self.root / 'visible-header.h').symlink_to(self.target_name)
+        extra = self.root / 'cache/sdk/include/another.h'
+        extra.symlink_to('../Source/other.h')
+        self.alias_scope(aliases=['visible-header.h', self.alias_name,
+                                  'cache/sdk/include/another.h'])
+        snap = self.capture()
+        self.assertEqual([b['path'] for b in snap['file_aliases']],
+                         ['cache/sdk/include/another.h', self.alias_name, 'visible-header.h'])
+        self.assertNotIn('visible-header.h', {i['path'] for i in snap['inventory']})
+
+    def test_version_two_rejects_malformed_alias_collection_and_overlapping_aliases(self):
+        self.alias_fixture()
+        for aliases in [None, True, {}, 'cache/header.h', [42],
+                        [self.alias_name, 'cache/sdk/include']]:
+            with self.subTest(aliases=aliases):
+                self.alias_scope()
+                raw = json.loads(self.scope.read_text())
+                raw['required_file_aliases'] = aliases
+                self.scope.write_text(json.dumps(raw))
+                self.reject_capture('SCHEMA_INVALID')
+
+    def test_alias_target_fifo_and_regular_parent_are_rejected(self):
+        alias, source = self.alias_fixture()
+        self.alias_scope(required=[self.target_name])
+        os.mkfifo(source / 'pipe.h')
+        alias.unlink()
+        alias.symlink_to('../Source/pipe.h')
+        self.reject_capture('INPUT_UNSUPPORTED')
+        self.alias_scope(aliases=[self.target_name + '/alias.h'], required=['src/main.py'])
+        self.reject_capture('INPUT_UNSUPPORTED')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -580,5 +580,83 @@ class StateTests(Fixture):
         self.commit(current,[old])
         self.validate('complete',1,'STATE_HISTORY_INVALID')
 
+    def alias_ready(self):
+        source = self.root / 'cache/sdk/Source'
+        source.mkdir(parents=True)
+        (source / 'header.h').write_bytes(b'header bytes')
+        (source / 'other.h').write_bytes(b'header bytes')
+        alias = self.root / 'cache/sdk/include/header.h'
+        alias.parent.mkdir()
+        alias.symlink_to('../Source/header.h')
+        self.scope.write_text(json.dumps({'schema_version': 2,
+            'required_inputs': ['cache/sdk/Source'],
+            'required_file_aliases': ['cache/sdk/include/header.h'], 'excluded_outputs': []}))
+        p = self.complete_ready()
+        p['verification'][0]['dependency_coverage']['required_inputs'] = ['cache/sdk/include/header.h']
+        return p, alias, source
+
+    def test_current_gate_accepts_explicit_alias_dependency_coverage(self):
+        p, _, _ = self.alias_ready()
+        self.commit(p)
+        self.validate('complete')
+
+    def test_identical_byte_retarget_and_raw_spelling_revoke_current_gate(self):
+        p, alias, _ = self.alias_ready()
+        self.commit(p)
+        self.validate('complete')
+        for target in ['../Source/other.h', '../Source/./header.h']:
+            with self.subTest(target=target):
+                alias.unlink()
+                alias.symlink_to(target)
+                self.validate('complete', 1, 'BASELINE_STALE')
+
+    def test_missing_alias_and_mutated_target_fail_current_gate(self):
+        p, alias, source = self.alias_ready()
+        self.commit(p)
+        (source / 'header.h').write_bytes(b'changed target')
+        self.validate('complete', 1, 'BASELINE_STALE')
+        alias.unlink()
+        self.validate('complete', 3, 'INPUT_UNSUPPORTED')
+
+    def test_snapshot_alias_claim_cannot_authorize_undeclared_or_unsafe_binding(self):
+        p, alias, _ = self.alias_ready()
+        self.commit(p)
+        alias.unlink()
+        alias.symlink_to('/outside-never-read')
+        self.validate('complete', 3, 'INPUT_UNSUPPORTED')
+        alias.unlink()
+        alias.symlink_to('../Source/header.h')
+        scope = json.loads(self.scope.read_text())
+        scope['required_file_aliases'] = []
+        self.scope.write_text(json.dumps(scope))
+        self.validate('complete', 1, 'BASELINE_STALE')
+
+    def test_new_alias_declaration_and_target_mode_revoke_prior_gate(self):
+        p, alias, source = self.alias_ready()
+        self.commit(p)
+        (source / 'header.h').chmod(0o755)
+        self.validate('complete', 1, 'BASELINE_STALE')
+        (source / 'header.h').chmod(0o644)
+        extra = alias.parent / 'another.h'
+        extra.symlink_to('../Source/other.h')
+        scope = json.loads(self.scope.read_text())
+        scope['required_file_aliases'].append('cache/sdk/include/another.h')
+        self.scope.write_text(json.dumps(scope))
+        self.validate('complete', 1, 'BASELINE_STALE')
+
+    def test_alias_snapshot_duplicate_and_uncaptured_target_fail_schema(self):
+        for mutation in ['duplicate', 'uncaptured']:
+            with self.subTest(mutation=mutation):
+                if mutation == 'duplicate':
+                    p, _, _ = self.alias_ready()
+                    p['implementation_snapshot']['file_aliases'] *= 2
+                else:
+                    p = self.complete_ready()
+                    p['implementation_snapshot']['file_aliases'][0]['resolved_path'] = 'absent.h'
+                snap = p['implementation_snapshot']
+                snap['id'] = digest({k: v for k, v in snap.items() if k != 'id'})
+                self.commit(p)
+                self.validate('complete', 1, 'SCHEMA_INVALID')
+
 if __name__ == '__main__':
     unittest.main()

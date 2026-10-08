@@ -298,13 +298,26 @@ class Context:
         require(name.startswith('evidence/'), 'INPUT_UNSUPPORTED', path,
                 'scope must be in exact active cycle evidence/', 3)
         scope = strict_json(path)
-        require(type(scope) is dict and set(scope) == {'schema_version', 'required_inputs', 'excluded_outputs'}
-                and type(scope['schema_version']) is int and scope['schema_version'] == 1,
+        keys = {'schema_version', 'required_inputs', 'excluded_outputs'}
+        version = scope.get('schema_version') if type(scope) is dict else None
+        if type(version) is int and version == 2:
+            keys.add('required_file_aliases')
+        require(type(scope) is dict and set(scope) == keys
+                and type(version) is int and version in (1, 2),
                 'SCHEMA_INVALID', path, 'invalid snapshot scope fields/version')
         require(type(scope['required_inputs']) is list and type(scope['excluded_outputs']) is list,
                 'SCHEMA_INVALID', path, 'scope collections must be arrays')
         required = [relative_path(n) for n in scope['required_inputs']]
         require(len(required) == len(set(required)), 'SCHEMA_INVALID', path, 'duplicate required input')
+        aliases = scope.get('required_file_aliases', [])
+        require(type(aliases) is list, 'SCHEMA_INVALID', path, 'required file aliases must be an array')
+        aliases = [self.alias_path(n) for n in aliases]
+        require(len(aliases) == len(set(aliases)), 'SCHEMA_INVALID', path, 'duplicate required file alias')
+        for alias in aliases:
+            require(not any(overlaps(alias, n) for n in required), 'SCHEMA_INVALID', alias,
+                    'file alias overlaps ordinary required input')
+            require(not any(overlaps(alias, n) for n in aliases if n != alias),
+                    'SCHEMA_INVALID', alias, 'file aliases overlap')
         outputs = []
         for output in scope['excluded_outputs']:
             require(type(output) is dict and set(output) == {'path', 'kind', 'reason'},
@@ -313,13 +326,68 @@ class Context:
             require(output['kind'] in ('build', 'cache', 'temp') and
                     isinstance(output['reason'], str) and output['reason'].strip(),
                     'SCHEMA_INVALID', path, 'invalid output kind/reason')
+            require(not any(overlaps(output['path'], n) for n in aliases), 'SCHEMA_INVALID',
+                    output['path'], 'output exclusion overlaps required file alias')
             safe_path(self.workspace, output['path'])
             outputs.append(output)
         require(len({o['path'] for o in outputs}) == len(outputs), 'SCHEMA_INVALID', path,
                 'duplicate excluded output')
-        return required, outputs, {'path': path.relative_to(self.workspace).as_posix(),
+        return required, aliases, outputs, {'path': path.relative_to(self.workspace).as_posix(),
                                   'kind': 'control_metadata', 'reason': 'mandatory snapshot scope bytes',
                                   'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+    @staticmethod
+    def alias_path(name):
+        name = relative_path(name)
+        try:
+            name.encode('utf-8')
+        except UnicodeError as error:
+            raise Invalid('INPUT_UNSUPPORTED', repr(name), 'non-UTF-8 file alias path', 3) from error
+        return name
+
+    def file_alias(self, name, expanded):
+        """Bind one declared link without ever normalizing away unsafe traversal."""
+        name = self.alias_path(name)
+        parent = self.workspace
+        try:
+            for component in name.split('/')[:-1]:
+                parent /= component
+                require(stat.S_ISDIR(parent.lstat().st_mode), 'INPUT_UNSUPPORTED', parent,
+                        'file alias parent must be a nonsymlink directory', 3)
+            path = parent / name.split('/')[-1]
+            require(stat.S_ISLNK(path.lstat().st_mode), 'INPUT_UNSUPPORTED', path,
+                    'declared file alias must be a symlink', 3)
+            target = os.readlink(path)
+            try:
+                target.encode('utf-8')
+            except UnicodeError as error:
+                raise Invalid('INPUT_UNSUPPORTED', path, 'non-UTF-8 file alias target', 3) from error
+            require(target and not target.startswith('/') and '\\' not in target and '\x00' not in target
+                    and all(target.split('/')), 'INPUT_UNSUPPORTED', path,
+                    'file alias target must be a nonempty relative POSIX file path', 3)
+            current = parent
+            parts = target.split('/')
+            for index, component in enumerate(parts):
+                require(stat.S_ISDIR(current.lstat().st_mode), 'INPUT_UNSUPPORTED', current,
+                        'every traversed target parent must be a nonsymlink directory', 3)
+                if component == '..':
+                    require(current != self.workspace, 'INPUT_UNSUPPORTED', path,
+                            'file alias target escapes workspace', 3)
+                    current = current.parent
+                elif component != '.':
+                    current /= component
+                mode = current.lstat().st_mode
+                require(not stat.S_ISLNK(mode), 'INPUT_UNSUPPORTED', current,
+                        'chained or intermediate symlink target is unsupported', 3)
+                require(stat.S_ISREG(mode) if index == len(parts) - 1 else stat.S_ISDIR(mode),
+                        'INPUT_UNSUPPORTED', current,
+                        'target must end at a regular file through existing nonsymlink directories', 3)
+            resolved = self.alias_path(current.relative_to(self.workspace).as_posix())
+            require(resolved in expanded, 'SCHEMA_INVALID', name,
+                    'file alias target is not an expanded required input')
+            return {'path': name, 'link_target': target, 'resolved_path': resolved}
+        except OSError as error:
+            raise Invalid('INPUT_UNSUPPORTED', name, str(error), 3) from error
 
     def expand(self, name):
         path = safe_path(self.workspace, name)
@@ -340,12 +408,22 @@ class Context:
         return files
 
     def product(self, revision, scope_path):
-        required, outputs, scope_entry = self.load_scope(scope_path)
+        required, aliases, outputs, scope_entry = self.load_scope(scope_path)
         actual_root = self.git('rev-parse', '--show-toplevel').decode().strip()
         require(Path(actual_root).resolve() == self.workspace, 'IDENTITY_MISMATCH', self.workspace,
                 'workspace must be Git top-level root')
         base = self.git('rev-parse', '--verify', '--end-of-options', revision + '^{commit}').decode().strip()
         controls = self.control_exclusions()
+        for name in aliases:
+            require(not any(overlaps(name, n) for n in controls), 'SCHEMA_INVALID', name,
+                    'required file alias overlaps control metadata')
+        expanded = set()
+        for name in required:
+            require(not any(overlaps(name, n) for n in controls), 'SCHEMA_INVALID', name,
+                    'required dependency overlaps control metadata')
+            expanded |= self.expand(name)
+        bindings = [self.file_alias(name, expanded) for name in byte_sorted(aliases)]
+        alias_names = set(aliases)
         tracked = self.git_names('ls-files', '--cached', '-z')
         untracked = self.git_names('ls-files', '--others', '--exclude-standard', '-z')
         ignored_directories = set()
@@ -358,7 +436,8 @@ class Context:
             metadata, name = entry.split(b'\t', 1)
             mode, _, stage = metadata.split()
             require(stage == b'0', 'INPUT_UNSUPPORTED', name.decode(errors='replace'), 'unmerged Git index', 3)
-            require(mode not in (b'160000', b'120000'), 'INPUT_UNSUPPORTED', name.decode(errors='replace'),
+            require(mode != b'160000' and (mode != b'120000' or name.decode('utf-8') in alias_names),
+                    'INPUT_UNSUPPORTED', name.decode(errors='replace'),
                     'symlinks and submodules are unsupported', 3)
         source_names = {'src', 'source', 'sources', 'config', 'resources', 'resource', 'docs',
                         'specs', '.specify', '.sdd', '.git'}
@@ -387,18 +466,13 @@ class Context:
                     hidden |= self.expand(self_path)
             require(not any(PurePosixPath(n).suffix.lower() in source_suffixes for n in hidden | {self_path}),
                     'SCHEMA_INVALID', self_path, 'source/config/resource output exclusion is forbidden')
-        expanded = set()
-        for name in required:
-            require(not any(overlaps(name, n) for n in controls), 'SCHEMA_INVALID', name,
-                    'required dependency overlaps control metadata')
-            expanded |= self.expand(name)
         exclusions = [*controls.values(), *outputs, scope_entry]
 
         def excluded(name):
             return any(name == c or name.startswith(c + '/') for c in controls) or any(
                 name == o['path'] or name.startswith(o['path'] + '/') for o in outputs)
 
-        protected = tracked | untracked | set(required) | set(controls)
+        protected = tracked | untracked | set(required) | set(controls) | alias_names
         opaque_ignored = {name for name in ignored_directories
                           if not any(overlaps(name, other) for other in protected)}
         # Nonopaque summaries overlap included inputs. Their residual regular leaves
@@ -413,6 +487,8 @@ class Context:
                 name = path.relative_to(self.workspace).as_posix()
                 if name == '.git' or name.startswith('.git/') or excluded(name):
                     continue
+                if name in alias_names:
+                    continue  # Only exact bindings validated above bypass regular-file collection.
                 mode = path.lstat().st_mode
                 inherited_ignored = any(name.startswith(n + '/') for n in ignored_directories)
                 disjoint = not any(overlaps(name, other) for other in protected)
@@ -435,14 +511,14 @@ class Context:
                     if name not in tracked | untracked:
                         ignored_leaves.add(name)
             directories[:] = keep
-        names = {n for n in tracked | untracked | expanded if not excluded(n)}
+        names = {n for n in tracked | untracked | expanded if not excluded(n) and n not in alias_names}
         inventory = []
         for name in byte_sorted(names):
             path = safe_path(self.workspace, name)
             if not path.exists() and name in tracked and name not in expanded:
                 continue  # Real tracked deletion, reflected against pinned tree below.
             inventory.append(file_item(path, name, executable=True))
-        for name in byte_sorted((ignored_leaves | opaque_ignored) - expanded):
+        for name in byte_sorted((ignored_leaves | opaque_ignored) - expanded - alias_names):
             if not excluded(name):
                 exclusions.append({'path': name, 'kind': 'ignored',
                                    'reason': ('ignored directory contents not inspected or hashed; '
@@ -450,6 +526,7 @@ class Context:
                                               'ignored input not declared required; semantic completeness unproven')})
         current = {i['path']: i for i in inventory}
         base_items = {}
+        base_aliases = {}
         for entry in self.git('ls-tree', '-r', '-z', base).split(b'\0'):
             if not entry:
                 continue
@@ -461,6 +538,9 @@ class Context:
                 raise Invalid('INPUT_UNSUPPORTED', self.workspace, 'non-UTF-8 base filename', 3) from error
             if excluded(name):
                 continue
+            if name in alias_names and kind == b'blob' and mode == b'120000':
+                base_aliases[name] = self.git('cat-file', 'blob', blob.decode('ascii'))
+                continue
             require(kind == b'blob' and mode in (b'100644', b'100755'), 'INPUT_UNSUPPORTED', name,
                     'unsupported pinned-base file type', 3)
             content = self.git('cat-file', 'blob', blob.decode('ascii'))
@@ -468,10 +548,14 @@ class Context:
                                 'executable': mode == b'100755'}
         changed = [name for name, item in current.items() if name not in base_items or
                    any(item[field] != base_items[name][field] for field in ('sha256', 'executable'))]
+        changed.extend(b['path'] for b in bindings if b['path'] not in base_aliases or
+                       b['link_target'].encode('utf-8') != base_aliases[b['path']])
         result = {'base_revision': base, 'inventory': inventory, 'changed_paths': byte_sorted(changed),
                   'deleted_paths': byte_sorted(set(base_items) - set(current)),
                   'required_inputs': byte_sorted(required),
                   'exclusions': sorted(exclusions, key=lambda i: (i['path'].encode(), i['kind']))}
+        if bindings:
+            result['file_aliases'] = bindings
         return {'id': digest(result), **result}
 
 
@@ -841,6 +925,17 @@ class Validator:
                    'inventory must contain distinct bytewise sorted paths')
         for name in [*names, *snapshot['required_inputs'], *snapshot['changed_paths'], *snapshot['deleted_paths']]:
             relative_path(name)
+        aliases = snapshot.get('file_aliases', [])
+        alias_names = [b['path'] for b in aliases]
+        self.check(bool(aliases) if 'file_aliases' in snapshot else True, 'SCHEMA_INVALID',
+                   'implementation_snapshot.file_aliases', 'unused alias field must be omitted')
+        self.check(alias_names == byte_sorted(set(alias_names)), 'SCHEMA_INVALID',
+                   'implementation_snapshot.file_aliases', 'aliases must be distinct bytewise sorted paths')
+        for binding in aliases:
+            self.context.alias_path(binding['path'])
+            self.context.alias_path(binding['resolved_path'])
+            self.check(binding['resolved_path'] in names and binding['path'] not in names,
+                       'SCHEMA_INVALID', binding['path'], 'alias must bind captured regular target')
         if not required:
             return snapshot['id']  # Pending correction/cancellation retains previous evidence without promoting it.
         metadata = [e for e in snapshot['exclusions'] if e['kind'] == 'control_metadata']
@@ -849,8 +944,9 @@ class Validator:
             return snapshot['id']
         scope_path = safe_path(self.context.workspace, metadata[0]['path'])
         current = self.context.product(snapshot['base_revision'], scope_path)
-        self.check(snapshot == current, 'BASELINE_STALE', 'implementation_snapshot',
-                   'actual product/base/dependency/scope bytes differ from bound snapshot')
+        if self.check(snapshot == current, 'BASELINE_STALE', 'implementation_snapshot',
+                      'actual product/base/dependency/scope bytes differ from bound snapshot'):
+            self.validated_aliases = {b['path']: b['resolved_path'] for b in current.get('file_aliases', [])}
         return snapshot['id']
 
     def equivalence_assessed(self, payload, ref, bid, sid):
@@ -880,7 +976,12 @@ class Validator:
                 valid &= check['implementation_snapshot_id'] == sid or self.equivalence_assessed(
                     payload, check['equivalence_ref'], bid, sid)
                 for dependency in check['dependency_coverage']['required_inputs']:
-                    files = self.context.expand(dependency)
+                    aliases = getattr(self, 'validated_aliases', {})
+                    claimed_aliases = {b['path'] for b in (payload['implementation_snapshot'] or {}).get('file_aliases', [])}
+                    if dependency in claimed_aliases:
+                        files = {aliases[dependency]} if dependency in aliases else set()
+                    else:
+                        files = self.context.expand(dependency)
                     valid &= files <= inventory and bool(files)
                 self.check(valid, 'VERIFICATION_INCOMPLETE', check_id,
                            'check must pass current criterion/version/dependency coverage (or assessed equivalence)')

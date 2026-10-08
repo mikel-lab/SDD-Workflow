@@ -19,6 +19,21 @@ Compatible Superpowers execution skills: test-driven-development, systematic-deb
 
 validate_cycle.py preserves identity/inventory/source/path isolation. validate_state.py is read-only and checks typed state/history/evidence, risk gates, current planning/product snapshots, review/findings/coverage and ownership. Capture modes emit JSON without writing. Product capture uses a fixed snapshot-scope JSON file inside exact cycle evidence, actual dirty/untracked/dependency input coverage and exact exclusions, never the workspace/SpecKit root. Unsupported or incomplete input fails explicitly. Required inputs nested in ignored caches stay strictly covered while disjoint ignored directories and optional links are explicitly unverified omissions; targets are not followed. Declaring an omitted input makes it covered, and protected links or malformed omission paths still fail. See the shipped schema, CLI help and references/contracts.md. Local structural checks do not authenticate Reviewer independence or discover every semantic dependency.
 
+Required file aliases use an explicit scope version 2. Declare the canonical source files or trees in `required_inputs` and each consumed symlink separately in `required_file_aliases`:
+
+```json
+{
+  "schema_version": 2,
+  "required_inputs": ["cache/sdk/Source"],
+  "required_file_aliases": ["cache/sdk/include/header.h"],
+  "excluded_outputs": []
+}
+```
+
+For `include/header.h -> ../Source/header.h`, the snapshot adds a `file_aliases` binding with `path`, literal `link_target` and canonical `resolved_path`; the target's bytes, size and executable bit remain in `inventory`. The alias and its ancestors cannot be ignored or excluded as output. Only one-hop relative links to already-required regular files inside the workspace are supported. Every literal target component is checked before collapsing `..`; intermediate links, missing paths, files used as directories, workspace escape, chained links, directory targets and control overlap fail. Safe real-directory then parent traversal remains supported. Current gates recompute bindings and target bytes; verification may name the exact declared alias only after current identity validation. Semantic dependency completeness still requires independent inspection.
+
+Scope version 1 keeps exactly `schema_version`, `required_inputs` and `excluded_outputs`, with its existing strict link rejection and snapshot identities. Version 2 requires the additional alias array; an empty array adds no `file_aliases` snapshot field. No SDK edits or generic symlink traversal are needed.
+
 ## Install and upgrade
 Requires Python 3.11+; the optional official skill validator requires its existing PyYAML dependency. Configure SDD_PYTHON when needed; no global Python changes are necessary.
 
