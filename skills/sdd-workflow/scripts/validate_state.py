@@ -190,6 +190,14 @@ def schema_check(value, schema, definitions, path='$'):
         require(value >= schema.get('minimum', value), 'SCHEMA_INVALID', path, 'integer below minimum')
 
 
+def _derived_ignored_name(name):
+    try:
+        name.encode('utf-8')
+    except UnicodeError as error:
+        raise Invalid('INPUT_UNSUPPORTED', name, 'non-UTF-8 ignored entry', 3) from error
+    return relative_path(name)
+
+
 class Context:
     def __init__(self, args):
         self.args = args
@@ -406,9 +414,21 @@ class Context:
                 if name == '.git' or name.startswith('.git/') or excluded(name):
                     continue
                 mode = path.lstat().st_mode
+                inherited_ignored = any(name.startswith(n + '/') for n in ignored_directories)
+                disjoint = not any(overlaps(name, other) for other in protected)
+                if inherited_ignored and disjoint:
+                    _derived_ignored_name(name)
+                    # Optional ignored links are disclosed without reading their target.
+                    # Required, tracked, untracked and control inputs remain protected.
+                    if stat.S_ISLNK(mode):
+                        ignored_leaves.add(name)
+                        continue
                 require(stat.S_ISREG(mode) or stat.S_ISDIR(mode), 'INPUT_UNSUPPORTED', name,
                         'covered symlink/device/FIFO/socket is unsupported', 3)
                 if child in directories:
+                    # Split reopened ancestors only at genuine disjoint directories.
+                    if inherited_ignored and disjoint:
+                        opaque_ignored.add(name)
                     if name not in opaque_ignored:
                         keep.append(child)
                 elif any(name.startswith(n + '/') for n in ignored_directories - opaque_ignored):

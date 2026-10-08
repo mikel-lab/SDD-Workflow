@@ -324,5 +324,114 @@ class SnapshotTests(Fixture):
         after={str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
         self.assertEqual(before,after,'failed default invocation must be read-only')
 
+
+
+class ProtectedIgnoredDependencyTests(Fixture):
+    def sdk_fixture(self):
+        sdk = self.root / 'cache/checkouts/sdk/production'
+        sdk.mkdir(parents=True)
+        (sdk / 'module.dat').write_bytes(b'dependency')
+        self.write_scope(['cache/checkouts/sdk/production'])
+        return sdk
+
+    def test_required_sdk_and_collateral_framework_link_capture_exact_bytes(self):
+        self.sdk_fixture()
+        framework = self.root / 'cache/frameworks/macOS'
+        framework.mkdir(parents=True)
+        (framework / 'Versions').symlink_to('/outside-never-read', target_is_directory=True)
+        snap = self.capture()
+        item = next(i for i in snap['inventory'] if i['path'] == 'cache/checkouts/sdk/production/module.dat')
+        self.assertEqual(item['sha256'], hashlib.sha256(b'dependency').hexdigest())
+        self.assertEqual(item['size'], 10)
+        ignored = {e['path'] for e in snap['exclusions'] if e['kind'] == 'ignored'}
+        self.assertIn('cache/frameworks', ignored)
+        self.assertFalse(any('cache/checkouts/sdk/production'.startswith(n + '/') for n in ignored))
+
+    def test_optional_ignored_documentation_link_is_disclosed_without_following(self):
+        self.sdk_fixture()
+        (self.root / 'cache/checkouts/sdk/documentation.md').symlink_to('/outside-never-read')
+        snap = self.capture()
+        omission = next(e for e in snap['exclusions'] if e['path'] == 'cache/checkouts/sdk/documentation.md')
+        self.assertEqual(omission['kind'], 'ignored')
+        self.assertIn('semantic completeness unproven', omission['reason'])
+        self.assertFalse(any(i['path'].endswith('documentation.md') for i in snap['inventory']))
+
+    def test_required_sdk_link_and_fifo_still_rejected(self):
+        sdk = self.sdk_fixture()
+        for kind in ('link', 'fifo'):
+            with self.subTest(kind=kind):
+                path = sdk / 'unsafe'
+                if kind == 'link':
+                    path.symlink_to('/outside-never-read')
+                else:
+                    os.mkfifo(path)
+                result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope), '--json')
+                self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+                self.assertFalse(json.loads(result.stdout)['valid'])
+                path.unlink()
+
+    def test_tracked_and_nonignored_links_remain_rejected(self):
+        self.sdk_fixture()
+        link = self.root / 'cache/owned-link'
+        link.symlink_to('/outside-never-read')
+        self.git('add', '-f', 'cache/owned-link')
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.git('rm', '-f', 'cache/owned-link')
+        (self.root / 'visible-link').symlink_to('/outside-never-read')
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope))
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+
+    def test_tracked_source_under_ignored_branch_is_not_omitted(self):
+        self.sdk_fixture()
+        directory = self.root / 'cache/settings'
+        directory.mkdir()
+        (directory / 'owned.dat').write_bytes(b'protected')
+        self.git('add', '-f', 'cache/settings/owned.dat')
+        snap = self.capture()
+        self.assertIn('cache/settings/owned.dat', {i['path'] for i in snap['inventory']})
+        self.assertNotIn('cache/settings', {e['path'] for e in snap['exclusions'] if e['kind'] == 'ignored'})
+
+    def test_former_opaque_config_becomes_hashed_when_later_required(self):
+        self.sdk_fixture()
+        settings = self.root / 'cache/settings/config.json'
+        settings.parent.mkdir()
+        settings.write_bytes(b'{"fixture":true}')
+        first = self.capture()
+        self.assertIn('cache/settings', {e['path'] for e in first['exclusions'] if e['kind'] == 'ignored'})
+        self.write_scope(['cache/checkouts/sdk/production', 'cache/settings/config.json'])
+        second = self.capture()
+        self.assertIn('cache/settings/config.json', {i['path'] for i in second['inventory']})
+        self.assertNotIn('cache/settings', {e['path'] for e in second['exclusions'] if e['kind'] == 'ignored'})
+        settings.write_bytes(b'{"fixture":false}')
+        self.assertNotEqual(self.capture()['id'], second['id'])
+
+    def test_derived_opaque_backslash_name_is_structured_failure(self):
+        self.sdk_fixture()
+        (self.root / 'cache/home\\odd').mkdir()
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope), '--json')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(json.loads(result.stdout)['valid'])
+
+    def test_control_root_link_is_rejected_before_capture(self):
+        self.sdk_fixture()
+        parked = self.root / '.sdd/parked-fixture-controls'
+        self.control.rename(parked)
+        self.control.symlink_to(parked, target_is_directory=True)
+        result = self.cli('--capture', 'product', '--base-revision', self.base, '--snapshot-scope', str(self.scope), '--json')
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertFalse(json.loads(result.stdout)['valid'])
+
+    def test_derived_non_utf8_name_fails_with_structured_invalid(self):
+        # APFS refuses raw non-UTF8 filenames; inject only the same byte/name boundary.
+        # The collector's validation and error classification remain real.
+        sys.path.insert(0, str(SCRIPT.parent))
+        self.addCleanup(lambda: sys.path.remove(str(SCRIPT.parent)))
+        from validate_state import _derived_ignored_name, Invalid
+        with self.assertRaises(Invalid) as caught:
+            _derived_ignored_name('cache/home\udcff')
+        self.assertEqual(caught.exception.code, 'INPUT_UNSUPPORTED')
+
+
 if __name__ == '__main__':
     unittest.main()
