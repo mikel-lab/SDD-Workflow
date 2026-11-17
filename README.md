@@ -8,7 +8,7 @@ Spec before product edits; plan before implementation; source/spec/task/change/c
 Normal flow: Main plans → validates/freezes → implements/verifies → independent final Reviewer → complete or correction. High-risk flow adds independent planning review before implementation. Auth/permissions, security, persistence/schema migration, destructive operations, external contracts, critical infrastructure, major architecture, cross-system consistency and data-loss/privacy triggers cannot be bypassed. Main may escalate others. Optional readers/writers need concrete benefit; writers have exclusive complete briefs and cannot overlap Main. Only Main dispatches, no default recursion.
 
 ## Skill and dependencies
-Install sdd-workflow with only agents/sdd-reviewer.toml. Current configurable Reviewer default is GPT-6.1 Sol/high/read-only. Other available agents are optional capabilities, not managed Planner/implementer roles. Runtime observability must be reported honestly; a configuration declaration is not proof of independence.
+Install sdd-workflow with only agents/sdd-reviewer.toml. Current configurable Reviewer default is GPT-6.2 Sol/high/read-only. Other available agents are optional capabilities, not managed Planner/implementer roles. Runtime observability must be reported honestly; a configuration declaration is not proof of independence.
 
 SpecKit owns official planning artifacts: speckit-specify, necessary speckit-clarify, speckit-checklist, speckit-plan, speckit-tasks and read-only speckit-analyze. speckit-converge is conditional on its documented executor compatibility. Generated artifacts are dynamic, with exact cycle identity and inventory.
 
