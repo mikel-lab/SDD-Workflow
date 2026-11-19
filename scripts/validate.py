@@ -26,7 +26,7 @@ REFERENCE_NAMES = (
     "sources-and-artifacts.md",
 )
 CANONICAL_AGENTS = {
-    "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6.2-sol", "high", "read-only"),
+    "sdd-reviewer.toml": ("sdd-reviewer", "gpt-6.2-astra", "high", "read-only"),
 }
 
 EXPECTED_FILES = (
